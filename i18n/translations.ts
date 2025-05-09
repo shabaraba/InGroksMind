@@ -206,8 +206,24 @@ export const getTranslation = (): Translation => {
   }
 
   // パラメータがない場合はブラウザの言語設定を使用
-  const userLang = navigator.language.split('-')[0]; // 'ja-JP' → 'ja'
-  return translations[userLang === 'ja' ? 'ja' : 'en'];
+  try {
+    // ブラウザの言語設定を取得
+    const userLang = (navigator.language || navigator.userLanguage || '').split('-')[0].toLowerCase(); // 'ja-JP' → 'ja'
+    // localStorage に保存されている言語設定を確認
+    const savedLang = localStorage.getItem('preferredLanguage');
+
+    // ローカルストレージに保存されている言語を優先
+    if (savedLang === 'ja' || savedLang === 'en') {
+      return translations[savedLang];
+    }
+
+    // ブラウザの言語設定を使用
+    return translations[userLang === 'ja' ? 'ja' : 'en'];
+  } catch (error) {
+    console.error('Error detecting language:', error);
+    // エラーが発生した場合はデフォルト言語（日本語）を返す
+    return translations['ja'];
+  }
 };
 
 // サーバーサイドでも実行可能な言語取得関数
