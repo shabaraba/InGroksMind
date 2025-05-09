@@ -47,6 +47,15 @@ export const translations: Translations = {
     about: "概要",
     twitterLoginButton: "Xでログイン",
     twitterLoginNotImplemented: "Xログイン機能は現在開発中です。Twitter Developer Accountの設定が必要です。",
+    save: "保存",
+    cancel: "キャンセル",
+
+    // ユーザー名入力
+    usernameInputTitle: "ユーザー名を入力",
+    usernameInputDescription: "回答時に表示されるユーザー名を入力してください。入力しなくても回答できます。",
+    usernameInputLabel: "ユーザー名",
+    usernameInputPlaceholder: "username（例: grok_fan）",
+    usernameInputSubmit: "設定",
 
     // アバウトモーダル
     aboutTitle: "Grokの気持ちについて",
@@ -104,6 +113,15 @@ export const translations: Translations = {
     about: "About",
     twitterLoginButton: "Login with X",
     twitterLoginNotImplemented: "X login feature is currently under development. Twitter Developer Account setup is required.",
+    save: "Save",
+    cancel: "Cancel",
+
+    // Username Input
+    usernameInputTitle: "Enter Username",
+    usernameInputDescription: "Enter a username that will be displayed when you answer. You can answer without entering a username.",
+    usernameInputLabel: "Username",
+    usernameInputPlaceholder: "username (e.g. grok_fan)",
+    usernameInputSubmit: "Set",
 
     // About Modal
     aboutTitle: "About In Grok's Mind",

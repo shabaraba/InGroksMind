@@ -9,6 +9,7 @@ import styleVariations from '../data/styleVariations';
 import virtualUsers from '../data/virtualUsers';
 import { evaluateAnswer } from '../services/geminiService';
 import getTranslation from '../i18n/translations';
+import { getUsername, getUserColor, getUserInitial, generateRandomUsername } from '../utils/userStorage';
 
 const PostContainer: React.FC = () => {
   const [quiz, setQuiz] = useState(quizData[0]);
@@ -113,14 +114,30 @@ const PostContainer: React.FC = () => {
             <div className="tweet-container bg-gray-800/50 rounded-lg">
               <div className="flex">
                 <div className="mr-3">
-                  <div className={`w-12 h-12 rounded-full ${userPersona.avatarColor} flex items-center justify-center`}>
-                    <span className="text-lg font-bold">{userPersona.avatarInitial}</span>
-                  </div>
+                  {/* 保存されたユーザー名があれば使用、なければランダムな仮想ユーザーを使用 */}
+                  {getUsername() ? (
+                    <div className={`w-12 h-12 rounded-full ${getUserColor(getUsername() || '')} flex items-center justify-center`}>
+                      <span className="text-lg font-bold">{getUserInitial(getUsername() || '')}</span>
+                    </div>
+                  ) : (
+                    <div className={`w-12 h-12 rounded-full ${userPersona.avatarColor} flex items-center justify-center`}>
+                      <span className="text-lg font-bold">{userPersona.avatarInitial}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <span className="font-bold mr-2">{navigator.language.startsWith('ja') ? userPersona.name_ja : userPersona.name_en}</span>
-                    <span className="text-gray-500">@{userPersona.username} · {t.justNow}</span>
+                    {getUsername() ? (
+                      <>
+                        <span className="font-bold mr-2">{getUsername()}</span>
+                        <span className="text-gray-500">@{getUsername()} · {t.justNow}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold mr-2">{navigator.language.startsWith('ja') ? userPersona.name_ja : userPersona.name_en}</span>
+                        <span className="text-gray-500">@{userPersona.username} · {t.justNow}</span>
+                      </>
+                    )}
                   </div>
                   <div className="mt-2">
                     <p className="text-white whitespace-pre-wrap">{answer}</p>
