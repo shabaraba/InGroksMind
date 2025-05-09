@@ -14,6 +14,8 @@ const PostContainer: React.FC = () => {
   const [quiz, setQuiz] = useState(quizData[0]);
   const [style, setStyle] = useState(styleVariations[0]);
   const [virtualUser, setVirtualUser] = useState(virtualUsers[0]);
+  const [requestUser, setRequestUser] = useState(virtualUsers[1]); // ファクトチェックを依頼するユーザー
+  const [userPersona, setUserPersona] = useState(virtualUsers[2]); // 回答するユーザーのペルソナ
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,11 +26,28 @@ const PostContainer: React.FC = () => {
   useEffect(() => {
     const randomQuizIndex = Math.floor(Math.random() * quizData.length);
     const randomStyleIndex = Math.floor(Math.random() * styleVariations.length);
+
+    // 投稿者をランダムに選択
     const randomUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    const selectedUser = virtualUsers[randomUserIndex];
+
+    // 投稿者とは異なるファクトチェック依頼者を選択
+    let requestUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    while (requestUserIndex === randomUserIndex) {
+      requestUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    }
+
+    // 回答するユーザーはさらに別のユーザーに設定
+    let userPersonaIndex = Math.floor(Math.random() * virtualUsers.length);
+    while (userPersonaIndex === randomUserIndex || userPersonaIndex === requestUserIndex) {
+      userPersonaIndex = Math.floor(Math.random() * virtualUsers.length);
+    }
 
     setQuiz(quizData[randomQuizIndex]);
     setStyle(styleVariations[randomStyleIndex]);
-    setVirtualUser(virtualUsers[randomUserIndex]);
+    setVirtualUser(selectedUser);
+    setRequestUser(virtualUsers[requestUserIndex]);
+    setUserPersona(virtualUsers[userPersonaIndex]);
   }, []);
 
   const handleSubmit = async (userAnswer: string) => {
@@ -51,11 +70,28 @@ const PostContainer: React.FC = () => {
   const handleNewQuestion = () => {
     const randomQuizIndex = Math.floor(Math.random() * quizData.length);
     const randomStyleIndex = Math.floor(Math.random() * styleVariations.length);
+
+    // 投稿者をランダムに選択
     const randomUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    const selectedUser = virtualUsers[randomUserIndex];
+
+    // 投稿者とは異なるファクトチェック依頼者を選択
+    let requestUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    while (requestUserIndex === randomUserIndex) {
+      requestUserIndex = Math.floor(Math.random() * virtualUsers.length);
+    }
+
+    // 回答するユーザーはさらに別のユーザーに設定
+    let userPersonaIndex = Math.floor(Math.random() * virtualUsers.length);
+    while (userPersonaIndex === randomUserIndex || userPersonaIndex === requestUserIndex) {
+      userPersonaIndex = Math.floor(Math.random() * virtualUsers.length);
+    }
 
     setQuiz(quizData[randomQuizIndex]);
     setStyle(styleVariations[randomStyleIndex]);
-    setVirtualUser(virtualUsers[randomUserIndex]);
+    setVirtualUser(selectedUser);
+    setRequestUser(virtualUsers[requestUserIndex]);
+    setUserPersona(virtualUsers[userPersonaIndex]);
     setAnswer('');
     setFeedback(null);
   };
@@ -67,7 +103,7 @@ const PostContainer: React.FC = () => {
       </div>
 
       <QuizPost quiz={quiz} virtualUser={virtualUser} />
-      <ReplyRequest style={style} virtualUser={virtualUser} />
+      <ReplyRequest style={style} virtualUser={virtualUser} requestUser={requestUser} />
 
       {!feedback ? (
         <AnswerForm onSubmit={handleSubmit} isLoading={isLoading} />
@@ -77,14 +113,14 @@ const PostContainer: React.FC = () => {
             <div className="tweet-container bg-gray-800/50 rounded-lg">
               <div className="flex">
                 <div className="mr-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
-                    <span className="text-lg font-bold">あなた</span>
+                  <div className={`w-12 h-12 rounded-full ${userPersona.avatarColor} flex items-center justify-center`}>
+                    <span className="text-lg font-bold">{userPersona.avatarInitial}</span>
                   </div>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <span className="font-bold mr-2">{t.yourAnswer}</span>
-                    <span className="text-gray-500">@you · {t.justNow}</span>
+                    <span className="font-bold mr-2">{navigator.language.startsWith('ja') ? userPersona.name_ja : userPersona.name_en}</span>
+                    <span className="text-gray-500">@{userPersona.username} · {t.justNow}</span>
                   </div>
                   <div className="mt-2">
                     <p className="text-white whitespace-pre-wrap">{answer}</p>

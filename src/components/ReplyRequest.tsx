@@ -1,31 +1,33 @@
 import React from 'react';
 import { StyleVariation } from '../data/styleVariations';
-import { VirtualUser } from '../data/virtualUsers';
+import { GrokUser, VirtualUser } from '../data/virtualUsers';
 import getTranslation from '../i18n/translations';
 
 interface ReplyRequestProps {
   style: StyleVariation;
   virtualUser: VirtualUser;
+  requestUser: VirtualUser; // ファクトチェックを依頼するユーザー
 }
 
-const ReplyRequest: React.FC<ReplyRequestProps> = ({ style, virtualUser }) => {
+const ReplyRequest: React.FC<ReplyRequestProps> = ({ style, virtualUser, requestUser }) => {
   const t = getTranslation();
+  const isJapanese = navigator.language.startsWith('ja');
   return (
     <div className="tweet-container tweet-border pl-12">
       <div className="flex">
         <div className="mr-3">
-          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
-            <span className="text-lg font-bold">U</span>
+          <div className={`w-12 h-12 rounded-full ${requestUser.avatarColor} flex items-center justify-center`}>
+            <span className="text-lg font-bold">{requestUser.avatarInitial}</span>
           </div>
         </div>
         <div className="flex-1">
           <div className="flex items-center">
-            <span className="font-bold mr-2">{t.userName}</span>
-            <span className="text-gray-500">@user · {t.justNow}</span>
+            <span className="font-bold mr-2">{isJapanese ? requestUser.name_ja : requestUser.name_en}</span>
+            <span className="text-gray-500">@{requestUser.username} · {t.justNow}</span>
           </div>
           <div className="mt-2">
             <p className="text-white">
-              <span className="text-blue-400">@{virtualUser.username}</span> {t.factCheckRequest.replace('{style}', navigator.language.startsWith('ja') ? style.name_ja : style.name_en)}
+              <span className="text-blue-400">@{GrokUser.username}</span> {t.factCheckRequest.replace('{style}', navigator.language.startsWith('ja') ? style.name_ja : style.name_en)}
             </p>
           </div>
           <div className="mt-3 flex space-x-8 text-gray-500">
