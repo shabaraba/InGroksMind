@@ -54,12 +54,18 @@ exports.handler = async function(event, context) {
     }
 
     // Gemini APIへのリクエスト内容
+    // 言語に応じたコンテンツとスタイル名を使用
+    const isJapanese = quiz.content_ja && (quiz.content_ja.length > 0);
+    const content = isJapanese ? quiz.content_ja : quiz.content_en;
+    const styleName = isJapanese ? style.name_ja : style.name_en;
+    const styleDesc = isJapanese ? style.description_ja : style.description_en;
+
     const prompt = \`
 以下の雑学お題に対するユーザー回答を評価してください:
 
-お題: \${quiz.content}
-指定された口調: \${style.name}
-指定口調の説明: \${style.description}
+お題: \${content}
+指定された口調: \${styleName}
+指定口調の説明: \${styleDesc}
 ユーザー回答: \${answer}
 
 以下の2点について評価し、1〜50点で採点してください:

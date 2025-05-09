@@ -10,8 +10,9 @@ export const evaluateAnswer = async (
   answer: string
 ): Promise<FeedbackData> => {
   try {
-    // 本番環境ではNetlify関数を呼び出す
-    if (process.env.NODE_ENV === 'production') {
+    // 本番環境、または環境変数REACT_APP_USE_GEMINI_APIが設定されているとき、
+    // Netlify関数を呼び出す
+    if (process.env.NODE_ENV === 'production' || process.env.REACT_APP_USE_GEMINI_API === 'true') {
       const response = await axios.post('/.netlify/functions/evaluate-answer', {
         quiz,
         style,
