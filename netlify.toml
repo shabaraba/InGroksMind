@@ -2,19 +2,26 @@
   # ビルドコマンド
   command = "npm run build"
   # 公開ディレクトリ
-  publish = "build"
+  publish = ".next"
   # 関数ディレクトリ
-  functions = "netlify/functions"
+  functions = ".netlify/functions"
 
-# リダイレクト設定（SPA用）
+# Next.js用の特殊設定
+[build.environment]
+  # Next.jsの変数
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Node.jsバージョン
+  NODE_VERSION = "18"
+
+# プラグイン設定
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# リダイレクト設定（Next.jsが自動的に処理するため少なくて済む）
 [[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200
-
-# 環境変数設定例（デプロイ時に環境変数で上書きする）
-[build.environment]
-  NODE_VERSION = "16"
+  to = "/404"
+  status = 404
 
 # ヘッダー設定
 [[headers]]
@@ -22,6 +29,13 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self' *.googleapis.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' *.googleapis.com;"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self' *.netlify.app; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' *.googleapis.com; frame-ancestors 'none';"
+
+# API画像ルートの特殊設定
+[[headers]]
+  for = "/api/og-image/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    Content-Type = "image/png"
