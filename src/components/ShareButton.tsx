@@ -46,16 +46,24 @@ const ShareButton: React.FC<ShareButtonProps> = ({ quiz, style, answer, feedback
       // シェアテキスト
       const shareText = t.shareTextCompact.replace('{totalScore}', feedback.total_score.toString());
 
-      // 画像URLはX APIでは直接共有できないが、テキスト内の説明として含める
+      try {
+        // 画像データをクリップボードにコピー
+        // 注: これは非同期処理で、ブラウザによって挙動が異なる
+        // 一部のブラウザではセキュリティの都合上失敗することもある
+        const blob = await fetch(imageUrl).then(r => r.blob());
+        const item = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([item]);
+
+        // 成功メッセージをコンソールに出力
+        console.log('画像がクリップボードにコピーされました');
+      } catch (err) {
+        // エラーがあればコンソールに出力
+        console.error('クリップボードへのコピーに失敗しました:', err);
+        // 失敗時のフォールバック（ユーザーに通知はしないが、内部的には記録）
+      }
+
+      // Xで共有 (ユーザーは手動で画像を貼り付ける)
       const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-
-      // 画像をダウンロード
-      const link = document.createElement('a');
-      link.download = 'grok-result.png';
-      link.href = imageUrl;
-      link.click();
-
-      // Xで共有
       window.open(xShareUrl, '_blank');
     } catch (err) {
       console.error('画像の生成中にエラーが発生しました:', err);

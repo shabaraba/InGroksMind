@@ -39,7 +39,7 @@ export const translations: Translations = {
     shareButton: "結果をXでシェアする",
     shareText: "「Grokの気持ち」で遊んでみました！\n\nお題: {content}\n指定口調: {style}\n\n私の回答が評価されました:\n正確性: {accuracyScore}/50点\n口調: {styleScore}/50点\n総合: {totalScore}/100点\n\n#BeGrok #Grokの気持ち",
     shareTextCompact: "「Grokの気持ち」で遊んでみました！\n総合スコア: {totalScore}/100点\n#BeGrok #Grokの気持ち",
-    imageDownloadNote: "※結果画像が自動的にダウンロードされます",
+    imageDownloadNote: "※結果画像と共にツイート作成画面が開きます",
     generatingImage: "画像生成中...",
     
     // ボタン類
@@ -105,7 +105,7 @@ export const translations: Translations = {
     shareButton: "Share Results on X",
     shareText: "I played \"In Grok's Mind\"!\n\nTopic: {content}\nRequested Style: {style}\n\nMy answer was evaluated:\nAccuracy: {accuracyScore}/50 pts\nStyle: {styleScore}/50 pts\nTotal: {totalScore}/100 pts\n\n#BeGrok #InGroksMind",
     shareTextCompact: "I played \"In Grok's Mind\"!\nTotal Score: {totalScore}/100 pts\n#BeGrok #InGroksMind",
-    imageDownloadNote: "※Result image will be automatically downloaded",
+    imageDownloadNote: "※Tweet composition will open with the result image",
     generatingImage: "Generating image...",
     
     // Buttons
