@@ -208,7 +208,7 @@ export const getTranslation = (): Translation => {
   // パラメータがない場合はブラウザの言語設定を使用
   try {
     // ブラウザの言語設定を取得
-    const userLang = (navigator.language || navigator.userLanguage || '').split('-')[0].toLowerCase(); // 'ja-JP' → 'ja'
+    const userLang = (navigator.language || (navigator as any).userLanguage || '').split('-')[0].toLowerCase(); // 'ja-JP' → 'ja'
     // localStorage に保存されている言語設定を確認
     const savedLang = localStorage.getItem('preferredLanguage');
 
