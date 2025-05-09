@@ -1,0 +1,27 @@
+[build]
+  # ビルドコマンド
+  command = "npm run build"
+  # 公開ディレクトリ
+  publish = "build"
+  # 関数ディレクトリ
+  functions = "netlify/functions"
+
+# リダイレクト設定（SPA用）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 環境変数設定例（デプロイ時に環境変数で上書きする）
+[build.environment]
+  NODE_VERSION = "16"
+
+# ヘッダー設定
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Content-Security-Policy = "default-src 'self' *.googleapis.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' *.googleapis.com;"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
