@@ -19,7 +19,7 @@ export const translations: Translations = {
     today: "今日",
     justNow: "たった今",
     userName: "ユーザー",
-    factCheckRequest: "ファクトチェックお願い。{style}で回答して",
+    factCheckRequest: "@grok ファクトチェックお願い。{style}で回答して",
     yourAnswer: "あなたのGrok回答",
     
     // フォーム
@@ -74,7 +74,7 @@ export const translations: Translations = {
     today: "Today",
     justNow: "Just now",
     userName: "User",
-    factCheckRequest: "Fact check please. Answer in {style} style",
+    factCheckRequest: "@grok Fact check please. Answer in {style} style",
     yourAnswer: "Your Grok Answer",
     
     // Form
