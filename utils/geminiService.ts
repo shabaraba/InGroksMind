@@ -40,7 +40,7 @@ export const getGeminiAnswer = async (
     // ダミー回答を返す
     return {
       content: locale === 'ja'
-        ? `これはGeminiの模範解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。実際の情報に基づいて回答すると、このようになるでしょう。${useGemini ? '（API呼び出しエラーのためモック回答を表示しています）' : '（API機能は無効になっています）'}`
+        ? `これはGeminiのダミー解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。実際の情報に基づいて回答すると、このようになるでしょう。${useGemini ? '（API呼び出しエラーのためモック回答を表示しています）' : '（API機能は無効になっています）'}`
         : `This is a model answer from Gemini. I'll answer about ${quiz.content_en} in the style of ${style.name_en}. Let me provide you with accurate information about this topic. Based on factual information, the answer would look like this. ${useGemini ? '(Showing mock answer due to API call error)' : '(API feature is disabled)'}`,
       avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
     };

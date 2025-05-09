@@ -8,6 +8,10 @@
 
 # production
 /build
+/.next
+
+# backup
+/old_backup
 
 # misc
 .DS_Store
@@ -26,3 +30,6 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# temporary test images
+test-og-image.png

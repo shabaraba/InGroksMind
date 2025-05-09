@@ -1,3 +1,5 @@
+import { ParsedUrlQuery } from 'querystring';
+
 // 評価結果のデータ構造
 export interface FeedbackData {
   accuracy_score: number;
@@ -42,7 +44,7 @@ export interface ResultPageData {
 }
 
 // 結果ページのURLパラメータ
-export interface ResultPageParams {
+export interface ResultPageParams extends ParsedUrlQuery {
   id: string;
   [key: string]: string | string[]; // ParsedUrlQuery互換のインデックスシグネチャを追加
 }

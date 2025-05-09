@@ -33,7 +33,7 @@ const Post: React.FC<PostProps> = ({
           className="mr-3 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold"
           style={{ backgroundColor: user.avatar }}
         >
-          {user.name?.charAt(0) || user.name_ja?.charAt(0) || user.name_en?.charAt(0) || '?'}
+          {user.name?.charAt(0) || user.name_ja?.charAt(0) || user.name_en?.charAt(0) || user.username.charAt(0) || '?'}
         </div>
         <div className="flex-grow">
           <div className="flex justify-between items-start">
