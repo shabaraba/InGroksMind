@@ -60,37 +60,33 @@ exports.handler = async function(event, context) {
     const styleName = isJapanese ? style.name_ja : style.name_en;
     const styleDesc = isJapanese ? style.description_ja : style.description_en;
 
-    const prompt = \`
-以下の雑学お題に対するユーザー回答を評価してください:
-
-お題: \${content}
-指定された口調: \${styleName}
-指定口調の説明: \${styleDesc}
-ユーザー回答: \${answer}
-
-以下の2点について評価し、1〜50点で採点してください:
-1. 回答の正確性 (実際の事実と照らし合わせて)
-2. 指定された口調の再現度
-
-回答形式:
-{
-  "accuracy_score": 数値,
-  "accuracy_comment": "コメント",
-  "style_score": 数値,
-  "style_comment": "コメント",
-  "total_score": 数値,
-  "overall_comment": "総評"
-}
-
-注意: 
-- accuracy_scoreとstyle_scoreはそれぞれ最大50点、合計で100点満点です
-- JSONフォーマットで回答してください
-- 各scoreは整数値にしてください
-\`;
+    // ES5互換の文字列連結を使用
+    const prompt =
+    "以下の雑学お題に対するユーザー回答を評価してください:\n\n" +
+    "お題: " + content + "\n" +
+    "指定された口調: " + styleName + "\n" +
+    "指定口調の説明: " + styleDesc + "\n" +
+    "ユーザー回答: " + answer + "\n\n" +
+    "以下の2点について評価し、1〜50点で採点してください:\n" +
+    "1. 回答の正確性 (実際の事実と照らし合わせて)\n" +
+    "2. 指定された口調の再現度\n\n" +
+    "回答形式:\n" +
+    "{\n" +
+    "  \"accuracy_score\": 数値,\n" +
+    "  \"accuracy_comment\": \"コメント\",\n" +
+    "  \"style_score\": 数値,\n" +
+    "  \"style_comment\": \"コメント\",\n" +
+    "  \"total_score\": 数値,\n" +
+    "  \"overall_comment\": \"総評\"\n" +
+    "}\n\n" +
+    "注意: \n" +
+    "- accuracy_scoreとstyle_scoreはそれぞれ最大50点、合計で100点満点です\n" +
+    "- JSONフォーマットで回答してください\n" +
+    "- 各scoreは整数値にしてください";
 
     // Gemini APIリクエスト
     const response = await axios.post(
-      `${GEMINI_API_ENDPOINT}?key=${apiKey}`,
+      GEMINI_API_ENDPOINT + "?key=" + apiKey,
       {
         contents: [
           {
