@@ -47,11 +47,11 @@ export const evaluateAnswer = async (
       
       return mockFeedback;
     }
-  } catch (error) {
+  } catch (error: any) { // any型を使用してエラーオブジェクトにアクセス
     console.error('Error evaluating answer:', error);
 
     // API制限エラー（429）の場合はエラーメッセージを含むレスポンスが返ってくる
-    if (error.response && error.response.status === 429 && error.response.data) {
+    if (error?.response?.status === 429 && error?.response?.data) {
       return error.response.data; // レート制限エラー時のモックデータを返す
     }
 
