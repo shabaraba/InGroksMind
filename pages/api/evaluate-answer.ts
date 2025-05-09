@@ -34,19 +34,37 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Gemini APIキーを環境変数から取得
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured' });
-    }
-
-    // Gemini APIへのリクエスト内容
     // 言語に応じたコンテンツとスタイル名を使用
     const userLocale = req.headers['accept-language'] || 'en';
     const isJapanese = userLocale.includes('ja');
     const content = isJapanese ? quiz.content_ja : quiz.content_en;
     const styleName = isJapanese ? style.name_ja : style.name_en;
     const styleDesc = isJapanese ? style.description_ja : style.description_en;
+
+    // Gemini APIキーを環境変数から取得
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      // APIキーがない場合はモックデータを返す
+      const accuracyScore = Math.floor(Math.random() * 41); // 0-40の範囲
+      const styleScore = Math.floor(Math.random() * 41); // 0-40の範囲
+      const totalScore = accuracyScore + styleScore;
+      
+      const errorMsg = isJapanese 
+        ? "※APIキーが設定されていないため、モックデータを表示しています。" 
+        : "※API key is not configured, showing mock data.";
+      const overallError = isJapanese 
+        ? "※注：APIキーが設定されていないため、モックデータを表示しています。" 
+        : "※Note: API key is not configured, showing mock data.";
+        
+      return res.status(200).json({
+        accuracy_score: accuracyScore,
+        accuracy_comment: errorMsg,
+        style_score: styleScore,
+        style_comment: errorMsg,
+        total_score: totalScore,
+        overall_comment: overallError
+      });
+    }
 
     // プロンプトテキスト
     let prompt = "以下の雑学お題に対するユーザー回答を厳格に評価してください:\n\n" +
@@ -135,6 +153,10 @@ export default async function handler(
   } catch (error: any) {
     console.error('Error:', error);
 
+    // フォールバックとしてモックデータを返す
+    const userLocale = req.headers['accept-language'] || 'en';
+    const isJapanese = userLocale.includes('ja');
+
     // APIのレートリミットエラー（429）を特別に処理
     if (error.response && error.response.status === 429) {
       return res.status(429).json({
@@ -149,9 +171,37 @@ export default async function handler(
       });
     }
 
-    return res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message
-    });
+    // その他のエラーの場合は一般的なモックデータを返す
+    try {
+      const accuracyScore = Math.floor(Math.random() * 41); // 0-40の範囲
+      const styleScore = Math.floor(Math.random() * 41); // 0-40の範囲
+      const totalScore = accuracyScore + styleScore;
+      
+      const errorMsg = isJapanese 
+        ? `※エラーが発生したため、モックデータを表示しています。エラー: ${error.message}` 
+        : `※An error occurred, showing mock data. Error: ${error.message}`;
+      const overallError = isJapanese 
+        ? "※注：エラーが発生したため、モックデータを表示しています。これはデモ表示です。" 
+        : "※Note: An error occurred, so we're showing mock data. This is a demo display.";
+        
+      return res.status(200).json({
+        accuracy_score: accuracyScore,
+        accuracy_comment: errorMsg,
+        style_score: styleScore,
+        style_comment: errorMsg,
+        total_score: totalScore,
+        overall_comment: overallError
+      });
+    } catch {
+      // 予期せぬエラー時の最終フォールバック
+      return res.status(200).json({
+        accuracy_score: 20,
+        accuracy_comment: isJapanese ? "※予期せぬエラーが発生しました。" : "※An unexpected error occurred.",
+        style_score: 20,
+        style_comment: isJapanese ? "※予期せぬエラーが発生しました。" : "※An unexpected error occurred.",
+        total_score: 40,
+        overall_comment: isJapanese ? "※システムエラーが発生しました。" : "※A system error occurred."
+      });
+    }
   }
 }

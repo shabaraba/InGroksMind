@@ -34,18 +34,26 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Gemini APIキーを環境変数から取得
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured' });
-    }
-
     // 言語に応じたコンテンツとスタイル名を使用
     const userLocale = req.headers['accept-language'] || 'en';
     const isJapanese = userLocale.includes('ja');
     const content = isJapanese ? quiz.content_ja : quiz.content_en;
     const styleName = isJapanese ? style.name_ja : style.name_en;
     const styleDesc = isJapanese ? style.description_ja : style.description_en;
+
+    // Gemini APIキーを環境変数から取得
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      // APIキーがない場合はモックデータを返す
+      const mockContent = isJapanese
+        ? `※APIキーが設定されていないため、モックデータを表示しています。${content}について、${styleName}の口調で回答します。これはGeminiのモデル回答です。`
+        : `※API key is not configured, showing mock data. I'll answer about ${content} in ${styleName} style. This is a model answer from Gemini.`;
+        
+      return res.status(200).json({
+        content: mockContent,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      });
+    }
 
     // プロンプトテキスト
     const prompt =
@@ -94,9 +102,33 @@ export default async function handler(
   } catch (error: any) {
     console.error('Error:', error);
 
-    return res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message
-    });
+    // フォールバックとしてモックデータを返す
+    const userLocale = req.headers['accept-language'] || 'en';
+    const isJapanese = userLocale.includes('ja');
+    
+    try {
+      const { quiz, style } = req.body;
+      const content = isJapanese ? quiz.content_ja : quiz.content_en;
+      const styleName = isJapanese ? style.name_ja : style.name_en;
+      
+      const mockContent = isJapanese
+        ? `※エラーが発生したため、モックデータを表示しています。${content}について、${styleName}の口調で回答します。これはGeminiのモデル回答です。エラー: ${error.message}`
+        : `※An error occurred, showing mock data. I'll answer about ${content} in ${styleName} style. This is a model answer from Gemini. Error: ${error.message}`;
+      
+      return res.status(200).json({
+        content: mockContent,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      });
+    } catch {
+      // リクエストボディの解析に失敗した場合の最終フォールバック
+      const errorMsg = isJapanese
+        ? "※エラーが発生したため、モックデータを表示しています。これはGeminiのモデル回答です。"
+        : "※An error occurred, showing mock data. This is a model answer from Gemini.";
+        
+      return res.status(200).json({
+        content: errorMsg,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      });
+    }
   }
 }
