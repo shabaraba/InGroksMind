@@ -13,6 +13,11 @@
   # Node.jsバージョン
   NODE_VERSION = "18"
 
+# PRプレビュー設定
+[context.deploy-preview]
+  command = "npm run build"
+  publish = ".next"
+
 # プラグイン設定
 [[plugins]]
   package = "@netlify/plugin-nextjs"
