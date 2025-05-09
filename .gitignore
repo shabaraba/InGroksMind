@@ -16,6 +16,9 @@
 .env.test.local
 .env.production.local
 
+# backup
+/old_backup
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -44,6 +44,7 @@ export interface ResultPageData {
 // 結果ページのURLパラメータ
 export interface ResultPageParams {
   id: string;
+  [key: string]: string | string[]; // ParsedUrlQuery互換のインデックスシグネチャを追加
 }
 
 // OG画像生成に必要なデータ

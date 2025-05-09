@@ -91,7 +91,18 @@ export const evaluateAnswer = async (
     const overallErrorJa = "※注：エラーが発生したため、正確な評価ができませんでした。これはデモ表示です。";
     const overallErrorEn = "※Note: An error occurred, so we couldn't evaluate accurately. This is a demo display.";
 
-    const result = {
+    // エラー時のモックGemini回答の作成
+    let errorGeminiAnswer: GeminiAnswer | null = null;
+    if (compareWithGemini) {
+      errorGeminiAnswer = {
+        content: locale === 'ja'
+          ? `※これはエラー時のモック回答です。${quiz.content_ja}についての模範解答を表示する予定でした。`
+          : `※This is a mock answer during error. We intended to show a model answer about ${quiz.content_en}.`,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      };
+    }
+
+    const result: FeedbackData = {
       accuracy_score: accuracyScore,
       accuracy_comment: errorMsg,
       style_score: styleScore,
@@ -100,9 +111,9 @@ export const evaluateAnswer = async (
       overall_comment: locale === 'ja' ? overallErrorJa : overallErrorEn
     };
 
-    // エラーの場合でもGeminiの回答があれば追加
-    if (geminiAnswer) {
-      result.gemini_answer = geminiAnswer;
+    // エラーの場合でもGemini回答があれば追加
+    if (errorGeminiAnswer) {
+      result.gemini_answer = errorGeminiAnswer;
     }
 
     return result;

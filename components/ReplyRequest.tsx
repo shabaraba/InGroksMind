@@ -38,16 +38,16 @@ const ReplyRequest: React.FC<ReplyRequestProps> = ({
   return (
     <div className="tweet-container border-b border-gray-700 pl-12">
       <div className="flex items-start">
-        <div 
+        <div
           className="mr-3 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold"
           style={{ backgroundColor: user.avatar }}
         >
-          {user.name.charAt(0)}
+          {user.name?.charAt(0) || user.name_ja?.charAt(0) || user.name_en?.charAt(0) || '?'}
         </div>
         <div className="flex-grow">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-bold text-white">{user.name}</h3>
+              <h3 className="font-bold text-white">{user.name || user.name_ja || user.name_en || 'User'}</h3>
               <p className="text-gray-400 text-sm">@{user.username} · {t.justNow}</p>
             </div>
             {/* アイコンは削除 */}
