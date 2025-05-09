@@ -10,18 +10,38 @@ export const getGeminiAnswer = async (
   locale: string = 'ja'
 ): Promise<GeminiAnswer | null> => {
   try {
-    // 現在の環境に関わらず、常にモックデータを使用する
-    // 開発環境用ではなく、実環境でも固定のモックデータを返すように変更
-    // APIキーの検証をスキップするため
-    
+    // 環境変数でAPIを使用するか判断
+    const useGemini = process.env.NEXT_PUBLIC_USE_GEMINI_API === 'true';
+
+    // API使用オプションがオンの場合は実際のAPIを呼び出す
+    if (useGemini) {
+      // APIのURLを構築（Next.jsの環境に合わせて）
+      const apiUrl = `/api/get-gemini-answer`;
+
+      // APIから実際の回答を取得を試みる
+      try {
+        const response = await axios.post(apiUrl, {
+          quiz,
+          style,
+          locale
+        });
+
+        return response.data;
+      } catch (apiError) {
+        console.error('Error calling Gemini API:', apiError);
+        // API呼び出しが失敗した場合はモックデータにフォールバック
+      }
+    }
+
+    // APIが無効またはAPI呼び出しが失敗した場合はモックデータを返す
     // モック遅延を追加（実際のAPI呼び出しをシミュレート）
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // ダミー回答を返す
     return {
       content: locale === 'ja'
-        ? `これはGeminiの模範解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。実際の情報に基づいて回答すると、このようになるでしょう。`
-        : `This is a model answer from Gemini. I'll answer about ${quiz.content_en} in the style of ${style.name_en}. Let me provide you with accurate information about this topic. Based on factual information, the answer would look like this.`,
+        ? `これはGeminiの模範解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。実際の情報に基づいて回答すると、このようになるでしょう。${useGemini ? '（API呼び出しエラーのためモック回答を表示しています）' : '（API機能は無効になっています）'}`
+        : `This is a model answer from Gemini. I'll answer about ${quiz.content_en} in the style of ${style.name_en}. Let me provide you with accurate information about this topic. Based on factual information, the answer would look like this. ${useGemini ? '(Showing mock answer due to API call error)' : '(API feature is disabled)'}`,
       avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
     };
   } catch (error) {
@@ -45,7 +65,37 @@ export const evaluateAnswer = async (
       geminiAnswer = await getGeminiAnswer(quiz, style, locale);
     }
 
-    // 常にモックデータを返す
+    // 環境変数でAPIを使用するか判断
+    const useGemini = process.env.NEXT_PUBLIC_USE_GEMINI_API === 'true';
+
+    // API使用オプションがオンの場合は実際のAPIを呼び出し、それ以外はモックデータを使用
+    if (useGemini) {
+      try {
+        // APIのURLを構築（Next.jsの環境に合わせて）
+        const apiUrl = `/api/evaluate-answer`;
+
+        const response = await axios.post(apiUrl, {
+          quiz,
+          style,
+          answer,
+          locale,
+          gemini_answer: geminiAnswer?.content // Geminiの回答を送信（比較用）
+        });
+
+        // Geminiの回答がある場合は結果に追加
+        const result = response.data;
+        if (geminiAnswer) {
+          result.gemini_answer = geminiAnswer;
+        }
+
+        return result;
+      } catch (apiError) {
+        console.error('Error calling evaluation API:', apiError);
+        // API呼び出しが失敗した場合はモックデータにフォールバック
+      }
+    }
+
+    // APIが無効またはAPI呼び出しが失敗した場合はモックデータを返す
     // モック遅延を追加（実際のAPI呼び出しをシミュレート）
     await new Promise(resolve => setTimeout(resolve, 1000));
     
