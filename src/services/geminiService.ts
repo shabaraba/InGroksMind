@@ -49,7 +49,25 @@ export const evaluateAnswer = async (
     }
   } catch (error) {
     console.error('Error evaluating answer:', error);
-    throw error;
+
+    // API制限エラー（429）の場合はエラーメッセージを含むレスポンスが返ってくる
+    if (error.response && error.response.status === 429 && error.response.data) {
+      return error.response.data; // レート制限エラー時のモックデータを返す
+    }
+
+    // その他のエラーの場合はモックデータを返す
+    const accuracyScore = Math.floor(Math.random() * 31) + 20; // 20-50の範囲
+    const styleScore = Math.floor(Math.random() * 31) + 20; // 20-50の範囲
+    const totalScore = accuracyScore + styleScore;
+
+    return {
+      accuracy_score: accuracyScore,
+      accuracy_comment: "※エラーが発生したため、正確な評価ができませんでした。モックデータを表示しています。",
+      style_score: styleScore,
+      style_comment: "※エラーが発生したため、正確な評価ができませんでした。モックデータを表示しています。",
+      total_score: totalScore,
+      overall_comment: "※注：エラーが発生したため、正確な評価ができませんでした。これはデモ表示です。"
+    };
   }
 };
 

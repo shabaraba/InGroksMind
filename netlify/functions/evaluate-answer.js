@@ -125,7 +125,25 @@ exports.handler = async function(event, context) {
     };
   } catch (error) {
     console.error('Error:', error);
-    
+
+    // APIのレートリミットエラー（429）を特別に処理
+    if (error.response && error.response.status === 429) {
+      return {
+        statusCode: 429,
+        headers,
+        body: JSON.stringify({
+          error: 'Rate Limit Exceeded',
+          message: 'APIの呼び出し制限に達しました。しばらく時間をおいてから再度お試しください。',
+          accuracy_score: 25,
+          accuracy_comment: "※APIの制限により正確な評価ができませんでした。モックデータを表示しています。",
+          style_score: 25,
+          style_comment: "※APIの制限により正確な評価ができませんでした。モックデータを表示しています。",
+          total_score: 50,
+          overall_comment: "※注：現在APIの呼び出し制限に達しているため、正確な評価ができませんでした。これはデモ表示です。"
+        })
+      };
+    }
+
     return {
       statusCode: 500,
       headers,
