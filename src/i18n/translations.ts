@@ -55,6 +55,10 @@ export const translations: Translations = {
     aboutStep3: "回答後、Gemini AIが正確性と口調の再現度を評価します。",
     aboutStep4: "結果をXでシェアして、友達と比較しましょう！",
     aboutTechnology: "使用技術",
+    aboutLinks: "リンク",
+    aboutGithub: "GitHub",
+    aboutBlog: "ブログ",
+    aboutX: "X",
     aboutDisclaimer: "このアプリはGrok AIとの公式提携はありません。教育・エンターテイメント目的で作成されました。",
   },
 
@@ -106,6 +110,10 @@ export const translations: Translations = {
     aboutStep3: "After submitting, Gemini AI will evaluate your accuracy and style reproduction.",
     aboutStep4: "Share your results on X and compare with friends!",
     aboutTechnology: "Technologies Used",
+    aboutLinks: "Links",
+    aboutGithub: "GitHub",
+    aboutBlog: "Blog",
+    aboutX: "X",
     aboutDisclaimer: "This app is not officially affiliated with Grok AI. Created for educational and entertainment purposes.",
   }
 };
