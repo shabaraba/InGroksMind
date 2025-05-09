@@ -259,12 +259,12 @@ export default function Home() {
                   className="mr-3 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold"
                   style={{ backgroundColor: currentGrokUser.avatar }}
                 >
-                  {currentGrokUser.name.charAt(0)}
+                  {currentGrokUser.name?.charAt(0) || currentGrokUser.username.charAt(0)}
                 </div>
                 <div className="flex-grow">
                   <div className="flex items-start mb-2">
                     <div>
-                      <h3 className="font-bold text-white">{currentGrokUser.name}</h3>
+                      <h3 className="font-bold text-white">{currentGrokUser.name || (currentGrokUser.name_ja || currentGrokUser.name_en)}</h3>
                       <p className="text-gray-400 text-sm">@{currentGrokUser.username}</p>
                     </div>
                   </div>
