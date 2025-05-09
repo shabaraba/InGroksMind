@@ -340,51 +340,38 @@ const ResultPage: NextPage<ResultPageProps> = ({
     // quizUserとreplyUserは依存配列から除外し、isJapaneseのみを依存配列に含める
   }, [isJapanese]);
   
-  // 評価結果データを構築（言語に応じたフィードバック）
-  const [feedback, setFeedback] = useState<FeedbackData>({
-    accuracy_score: 0,
-    accuracy_comment: '',
-    style_score: 0,
-    style_comment: '',
-    total_score: 0,
-    overall_comment: '',
-    gemini_answer: initialGeminiAnswer // サーバーサイドから受け取ったGemini回答を初期値として設定
-  });
-
-  // 言語変更時にフィードバックも更新
-  useEffect(() => {
+  // 評価結果データをuseMemoで構築（言語変更時に再計算される）
+  const feedback = React.useMemo<FeedbackData>(() => {
     const accuracyScore = Math.floor(score / 2);
     const styleScore = score - accuracyScore;
-
-    // 以前のGemini回答を保持するために現在のフィードバックを取得
-    setFeedback(prevFeedback => {
-      // Gemini回答がある場合は、言語に応じて内容を更新
-      let updatedGeminiAnswer = prevFeedback.gemini_answer;
-
-      if (initialGeminiAnswer && prevFeedback.gemini_answer) {
-        // クイズとスタイルの現在の言語に合わせた内容
-        const content = isJapanese ? quiz.content_ja : quiz.content_en;
-        const styleName = isJapanese ? style.name_ja : style.name_en;
-
-        // 言語に応じたGemini回答の内容を更新
-        updatedGeminiAnswer = {
-          ...prevFeedback.gemini_answer,
-          content: isJapanese
-            ? `これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
-            : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic.`
+    const locale = isJapanese ? 'ja' : 'en';
+    const currentContent = isJapanese ? quiz.content_ja : quiz.content_en;
+    const currentStyleName = isJapanese ? style.name_ja : style.name_en;
+    
+    // Gemini回答の言語に応じた更新
+    let geminiAnswer = initialGeminiAnswer;
+    if (initialGeminiAnswer) {
+      // モックデータや説明文の場合は言語に応じて内容を更新
+      if (initialGeminiAnswer.content.includes('※') || 
+          initialGeminiAnswer.content.includes('model answer')) {
+        geminiAnswer = {
+          ...initialGeminiAnswer,
+          content: isJapanese 
+            ? `これはGeminiの模範解答です。${currentContent}について、${currentStyleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
+            : `This is a model answer from Gemini. I'll answer about ${currentContent} in the style of ${currentStyleName}. Let me provide you with accurate information about this topic.`
         };
       }
-
-      return {
-        accuracy_score: accuracyScore,
-        accuracy_comment: getAccuracyComment(accuracyScore, isJapanese ? 'ja' : 'en'),
-        style_score: styleScore,
-        style_comment: getStyleComment(styleScore, isJapanese ? style.name_ja : style.name_en, isJapanese ? 'ja' : 'en'),
-        total_score: score,
-        overall_comment: getOverallComment(score, isJapanese ? 'ja' : 'en'),
-        gemini_answer: updatedGeminiAnswer // 更新されたGemini回答を設定
-      };
-    });
+    }
+    
+    return {
+      accuracy_score: accuracyScore,
+      accuracy_comment: getAccuracyComment(accuracyScore, locale),
+      style_score: styleScore,
+      style_comment: getStyleComment(styleScore, currentStyleName, locale),
+      total_score: score,
+      overall_comment: getOverallComment(score, locale),
+      gemini_answer: geminiAnswer // 言語に合わせて更新したGemini回答
+    };
   }, [isJapanese, score, style, quiz, initialGeminiAnswer]);
 
   // 言語に応じたフィードバック生成関数（geminiService.tsから抜粋）
