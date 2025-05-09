@@ -19,7 +19,7 @@ export const translations: Translations = {
     today: "今日",
     justNow: "たった今",
     userName: "ユーザー",
-    factCheckRequest: "@grok ファクトチェックお願い。{style}で回答して",
+    factCheckRequest: "ファクトチェックお願い。{style}で回答して",
     yourAnswer: "あなたのGrok回答",
     
     // フォーム
@@ -45,6 +45,8 @@ export const translations: Translations = {
     // ボタン類
     newQuestion: "新しい問題に挑戦する",
     about: "概要",
+    twitterLoginButton: "Xでログイン",
+    twitterLoginNotImplemented: "Xログイン機能は現在開発中です。Twitter Developer Accountの設定が必要です。",
 
     // アバウトモーダル
     aboutTitle: "Grokの気持ちについて",
@@ -74,7 +76,7 @@ export const translations: Translations = {
     today: "Today",
     justNow: "Just now",
     userName: "User",
-    factCheckRequest: "@grok Fact check please. Answer in {style} style",
+    factCheckRequest: "Fact check please. Answer in {style} style",
     yourAnswer: "Your Grok Answer",
     
     // Form
@@ -100,6 +102,8 @@ export const translations: Translations = {
     // Buttons
     newQuestion: "Try Another Question",
     about: "About",
+    twitterLoginButton: "Login with X",
+    twitterLoginNotImplemented: "X login feature is currently under development. Twitter Developer Account setup is required.",
 
     // About Modal
     aboutTitle: "About In Grok's Mind",

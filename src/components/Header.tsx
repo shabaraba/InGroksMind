@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import getTranslation from '../i18n/translations';
 import AboutModal from './AboutModal';
+import TwitterLoginButton from './TwitterLoginButton';
 
 const Header: React.FC = () => {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -11,7 +12,8 @@ const Header: React.FC = () => {
       <header className="sticky top-0 z-10 bg-black/80 backdrop-blur-md p-4 border-b border-gray-700">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold text-white">{t.appTitle}</h1>
-          <div className="flex space-x-4">
+          <div className="flex items-center space-x-4">
+            <TwitterLoginButton />
             <span
               className="text-gray-400 hover:text-white cursor-pointer transition-colors"
               onClick={() => setIsAboutOpen(true)}
