@@ -17,6 +17,7 @@ import ReplyRequest from '../../components/ReplyRequest';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import AboutModal from '../../components/AboutModal';
 import PostInteractions from '../../components/PostInteractions';
+import GeminiAnswerDisplay from '../../components/GeminiAnswerDisplay';
 import * as ga from '../../utils/analytics';
 
 // 結果ページのプロパティ
@@ -31,6 +32,7 @@ interface ResultPageProps {
   resultUrl: string;
   shareText: string;
   isSharedView: boolean; // シェアから訪問したかどうかのフラグ
+  initialGeminiAnswer?: GeminiAnswer; // Gemini回答の初期値
 }
 
 // Geminiのリプライコンポーネント
@@ -127,7 +129,8 @@ const ResultPage: NextPage<ResultPageProps> = ({
   ogImageUrl,
   resultUrl,
   shareText,
-  isSharedView
+  isSharedView,
+  initialGeminiAnswer
 }) => {
   const router = useRouter();
   const { isJapanese, setLanguage } = useContext(LanguageContext);
@@ -344,7 +347,8 @@ const ResultPage: NextPage<ResultPageProps> = ({
     style_score: 0,
     style_comment: '',
     total_score: 0,
-    overall_comment: ''
+    overall_comment: '',
+    gemini_answer: initialGeminiAnswer // サーバーサイドから受け取ったGemini回答を初期値として設定
   });
 
   // 言語変更時にフィードバックも更新
@@ -352,14 +356,16 @@ const ResultPage: NextPage<ResultPageProps> = ({
     const accuracyScore = Math.floor(score / 2);
     const styleScore = score - accuracyScore;
 
-    setFeedback({
+    // 以前のGemini回答を保持するために現在のフィードバックを取得
+    setFeedback(prevFeedback => ({
       accuracy_score: accuracyScore,
       accuracy_comment: getAccuracyComment(accuracyScore, isJapanese ? 'ja' : 'en'),
       style_score: styleScore,
       style_comment: getStyleComment(styleScore, isJapanese ? style.name_ja : style.name_en, isJapanese ? 'ja' : 'en'),
       total_score: score,
-      overall_comment: getOverallComment(score, isJapanese ? 'ja' : 'en')
-    });
+      overall_comment: getOverallComment(score, isJapanese ? 'ja' : 'en'),
+      gemini_answer: prevFeedback.gemini_answer // 既存のgemini_answerを保持
+    }));
   }, [isJapanese, score, style]);
 
   // 言語に応じたフィードバック生成関数（geminiService.tsから抜粋）
@@ -545,6 +551,22 @@ const ResultPage: NextPage<ResultPageProps> = ({
               </div>
             </div>
 
+            {/* Geminiの回答表示（もしgemini_answerが存在する場合） */}
+            {feedback.gemini_answer && (
+              <GeminiAnswerDisplay
+                geminiAnswer={feedback.gemini_answer}
+                resultId={resultId}
+                locale={isJapanese ? 'ja' : 'en'}
+                t={t}
+              />
+            )}
+            {/* Gemini回答がない場合はデバッグメッセージを表示（開発用） */}
+            {process.env.NODE_ENV === 'development' && !feedback.gemini_answer && (
+              <div className="p-4 bg-red-100 text-red-800 border border-red-200 rounded-md mt-2 mb-2">
+                <p>Debug: Gemini回答が取得できませんでした。</p>
+              </div>
+            )}
+
             {/* Geminiの評価（別ポストとして表示） */}
             <GeminiFeedback feedback={feedback} t={t} isJapanese={isJapanese} resultId={resultId} />
           </div>
@@ -620,6 +642,15 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
   // ユーザーの回答を取得
   const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
 
+  // Gemini回答フラグの確認
+  const hasGemini = context.query.has_gemini === '1';
+
+  // Gemini回答データがあれば格納（将来的な実装のため）
+  const geminiAnswerContent = context.query.gemini_answer as string;
+
+  // デバッグ用コンソール出力
+  console.log('Has Gemini flag:', hasGemini, 'Query params:', context.query);
+
   try {
     // IDからクイズID, スタイルID, スコアを抽出
     const resultData = decodeResultId(id);
@@ -674,6 +705,24 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // 3. 上記以外（外部サイトからの訪問や直接URL入力）はシェアビューとみなす
     const isSharedView = !isDirect && !isFromSameOrigin;
 
+    // 結果ページ初期化時にGemini回答を設定するためのモックデータ
+    let initialGeminiAnswer = undefined;
+
+    // hasGeminiフラグがtrueの場合、モックのGemini回答を生成
+    if (hasGemini) {
+      const quiz = quizData.find(q => q.id === quizId);
+      const style = styleVariations.find(s => s.id === styleId);
+
+      if (quiz && style) {
+        initialGeminiAnswer = {
+          content: locale === 'ja'
+            ? `これはGeminiの模範解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。`
+            : `This is a model answer from Gemini. I'll answer about ${quiz.content_en} in the style of ${style.name_en}. Let me provide you with accurate information about this topic.`,
+          avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+        };
+      }
+    }
+
     return {
       props: {
         resultId: id,
@@ -686,7 +735,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
         resultUrl,
         shareText,
         isSharedView,
-        preferredLanguage: locale // ここでlanguageプロパティとして追加
+        preferredLanguage: locale, // ここでlanguageプロパティとして追加
+        initialGeminiAnswer // Gemini回答の初期値を追加
       }
     };
   } catch (error) {

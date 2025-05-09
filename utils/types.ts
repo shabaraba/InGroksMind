@@ -6,6 +6,13 @@ export interface FeedbackData {
   style_comment: string;
   total_score: number;
   overall_comment: string;
+  gemini_answer?: GeminiAnswer; // Geminiの回答情報（オプショナル）
+}
+
+// Geminiの回答データ
+export interface GeminiAnswer {
+  content: string; // 回答内容
+  avatar_url?: string; // アバター画像URL（オプショナル）
 }
 
 // APIからの評価リクエスト

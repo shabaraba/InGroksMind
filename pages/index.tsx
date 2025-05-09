@@ -122,11 +122,11 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (answer.trim() === '' || isSubmitting) return;
-    
+
     setIsSubmitting(true);
     try {
-      // 回答評価APIを呼び出し（言語情報も渡す）
-      const feedback = await evaluateAnswer(quiz, style, answer, isJapanese ? 'ja' : 'en');
+      // 回答評価APIを呼び出し（言語情報も渡し、Geminiの回答も取得する）
+      const feedback = await evaluateAnswer(quiz, style, answer, isJapanese ? 'ja' : 'en', true);
 
       // 結果ID生成
       const resultId = generateResultId(quizId, styleId, feedback.total_score);
@@ -140,7 +140,8 @@ export default function Home() {
         lang: isJapanese ? 'ja' : 'en',
         quizUserId: quizUser.id.toString(),
         replyUserId: replyUser.id.toString(),
-        direct: '1' // 自分で回答した場合は直接アクセスとマーク
+        direct: '1', // 自分で回答した場合は直接アクセスとマーク
+        has_gemini: feedback.gemini_answer ? '1' : '0' // Gemini回答があるかどうかのフラグ
       });
 
       // 結果ページにリダイレクト (言語パラメータとユーザーIDを含める)
