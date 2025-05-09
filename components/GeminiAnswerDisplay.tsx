@@ -46,7 +46,13 @@ const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
           </p>
 
           <div className="text-white whitespace-pre-wrap mb-4">
-            {content}
+            {/* APIエラーメッセージを含む場合は、その部分を強調表示 */}
+            {content.includes('※') ? (
+              <div>
+                <span className="text-amber-400 font-medium">{content.split('。')[0]}。</span>
+                <span>{content.split('。').slice(1).join('。')}</span>
+              </div>
+            ) : content}
           </div>
 
           {/* インタラクションボタン - 結果IDとgeminiをシードとして使用 */}

@@ -357,16 +357,35 @@ const ResultPage: NextPage<ResultPageProps> = ({
     const styleScore = score - accuracyScore;
 
     // 以前のGemini回答を保持するために現在のフィードバックを取得
-    setFeedback(prevFeedback => ({
-      accuracy_score: accuracyScore,
-      accuracy_comment: getAccuracyComment(accuracyScore, isJapanese ? 'ja' : 'en'),
-      style_score: styleScore,
-      style_comment: getStyleComment(styleScore, isJapanese ? style.name_ja : style.name_en, isJapanese ? 'ja' : 'en'),
-      total_score: score,
-      overall_comment: getOverallComment(score, isJapanese ? 'ja' : 'en'),
-      gemini_answer: prevFeedback.gemini_answer // 既存のgemini_answerを保持
-    }));
-  }, [isJapanese, score, style]);
+    setFeedback(prevFeedback => {
+      // Gemini回答がある場合は、言語に応じて内容を更新
+      let updatedGeminiAnswer = prevFeedback.gemini_answer;
+
+      if (initialGeminiAnswer && prevFeedback.gemini_answer) {
+        // クイズとスタイルの現在の言語に合わせた内容
+        const content = isJapanese ? quiz.content_ja : quiz.content_en;
+        const styleName = isJapanese ? style.name_ja : style.name_en;
+
+        // 言語に応じたGemini回答の内容を更新
+        updatedGeminiAnswer = {
+          ...prevFeedback.gemini_answer,
+          content: isJapanese
+            ? `これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
+            : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic.`
+        };
+      }
+
+      return {
+        accuracy_score: accuracyScore,
+        accuracy_comment: getAccuracyComment(accuracyScore, isJapanese ? 'ja' : 'en'),
+        style_score: styleScore,
+        style_comment: getStyleComment(styleScore, isJapanese ? style.name_ja : style.name_en, isJapanese ? 'ja' : 'en'),
+        total_score: score,
+        overall_comment: getOverallComment(score, isJapanese ? 'ja' : 'en'),
+        gemini_answer: updatedGeminiAnswer // 更新されたGemini回答を設定
+      };
+    });
+  }, [isJapanese, score, style, quiz, initialGeminiAnswer]);
 
   // 言語に応じたフィードバック生成関数（geminiService.tsから抜粋）
   const getAccuracyComment = (score: number, locale: string = 'ja'): string => {
