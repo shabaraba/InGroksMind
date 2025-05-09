@@ -7,6 +7,16 @@ export interface VirtualUser {
   avatarColor: string;
 }
 
+export const GrokUser: VirtualUser = {
+    id: 0,
+    name_ja: "grok",
+    name_en: "grok",
+    username: "grok",
+    avatarInitial: "G",
+    avatarColor: "bg-gray-700"
+
+}
+
 export const virtualUsers: VirtualUser[] = [
   {
     id: 1,

@@ -13,7 +13,12 @@ export const evaluateAnswer = async (
     // 本番環境、または環境変数REACT_APP_USE_GEMINI_APIが設定されているとき、
     // Netlify関数を呼び出す
     if (process.env.NODE_ENV === 'production' || process.env.REACT_APP_USE_GEMINI_API === 'true') {
-      const response = await axios.post('/.netlify/functions/evaluate-answer', {
+      // ローカル開発環境ではNetlify Dev URLを使用
+      const apiUrl = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:8888/.netlify/functions/evaluate-answer'
+        : '/.netlify/functions/evaluate-answer';
+
+      const response = await axios.post(apiUrl, {
         quiz,
         style,
         answer
