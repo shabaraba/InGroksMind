@@ -15,8 +15,8 @@ export const generateOgImageUrl = (
   const language = locale === 'ja' ? 'ja' : 'en';
   
   try {
-    // 動的スコア表示付きOG画像エンドポイントを使用
-    return `${protocol}://${host}/api/og-image-dynamic?quizId=${quizId}&styleId=${styleId}&score=${score}&lang=${language}`;
+    // 左右分割レイアウト・スコア表示付きOG画像エンドポイントを使用
+    return `${protocol}://${host}/api/og-image-split?quizId=${quizId}&styleId=${styleId}&score=${score}&lang=${language}`;
   } catch (error) {
     // エラーが発生した場合は最もシンプルな静的APIエンドポイントを使用
     return `${protocol}://${host}/api/og-image-static`;
