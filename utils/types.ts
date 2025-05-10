@@ -8,7 +8,7 @@ export interface FeedbackData {
   style_comment: string;
   total_score: number;
   overall_comment: string;
-  gemini_answer?: GeminiAnswer; // Geminiの回答情報（オプショナル）
+  gemini_answer?: GeminiAnswer | null; // Geminiの回答情報（オプショナル）、nullも許容
 }
 
 // Geminiの回答データ
