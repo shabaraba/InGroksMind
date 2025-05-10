@@ -284,9 +284,22 @@ const ResultPage: NextPage<ResultPageProps> = ({
 
 // サーバーサイドのデータ取得
 export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
+  // 言語パラメータ取得（リダイレクト用）
+  const langParam = context.query.lang as string;
+  const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
+  const langQuery = locale ? `?lang=${locale}` : '';
+
   // IDを取得
   const { id } = context.params || {};
-  if (!id) return { notFound: true };
+  if (!id) {
+    // 存在しないIDの場合はホームにリダイレクト
+    return {
+      redirect: {
+        destination: `/${langQuery}`,
+        permanent: false,
+      },
+    };
+  }
 
   // 圧縮されたクエリパラメータがあれば展開
   const compressedData = context.query.c as string;
@@ -302,19 +315,31 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
   try {
     // IDからクイズID, スタイルID, スコアを抽出
     const resultData = decodeResultId(id);
-    if (!resultData) return { notFound: true };
+    if (!resultData) {
+      // 無効なIDの場合はホームにリダイレクト
+      return {
+        redirect: {
+          destination: `/${langQuery}`,
+          permanent: false,
+        },
+      };
+    }
 
     const { quizId, styleId, score } = resultData;
-    
+
     // クイズとスタイルの存在確認
     const quiz = quizData.find(q => q.id === quizId);
     const style = styleVariations.find(s => s.id === styleId);
-    if (!quiz || !style) return { notFound: true };
-    
-    // ロケール取得
-    const langParam = context.query.lang as string;
-    const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
-    
+    if (!quiz || !style) {
+      // 存在しないクイズまたはスタイルの場合はホームにリダイレクト
+      return {
+        redirect: {
+          destination: `/${langQuery}`,
+          permanent: false,
+        },
+      };
+    };
+
     // ホスト名取得
     const host = context.req.headers.host || 'localhost:3000';
     
@@ -367,7 +392,13 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
-    return { notFound: true };
+    // エラー発生時もホームにリダイレクト
+    return {
+      redirect: {
+        destination: `/${langQuery}`,
+        permanent: false,
+      },
+    };
   }
 };
 
