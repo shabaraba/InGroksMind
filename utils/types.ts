@@ -8,6 +8,13 @@ export interface FeedbackData {
   style_comment: string;
   total_score: number;
   overall_comment: string;
+  gemini_answer?: GeminiAnswer | null; // Geminiの回答情報（オプショナル）、nullも許容
+}
+
+// Geminiの回答データ
+export interface GeminiAnswer {
+  content: string; // 回答内容
+  avatar_url?: string; // アバター画像URL（オプショナル）
 }
 
 // APIからの評価リクエスト
@@ -39,6 +46,7 @@ export interface ResultPageData {
 // 結果ページのURLパラメータ
 export interface ResultPageParams extends ParsedUrlQuery {
   id: string;
+  [key: string]: string | string[]; // ParsedUrlQuery互換のインデックスシグネチャを追加
 }
 
 // OG画像生成に必要なデータ

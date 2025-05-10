@@ -25,8 +25,8 @@ interface LanguageContextType {
 }
 
 export const LanguageContext = createContext<LanguageContextType>({
-  language: 'en',
-  isJapanese: false,
+  language: 'ja',
+  isJapanese: true,
   setLanguage: () => {}
 });
 
@@ -35,7 +35,7 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
 
   // デフォルトの言語を設定（優先順位: preferredLanguage > locale > デフォルト）
   // preferredLanguageはシェアページなどでユーザーの元の言語設定を引き継ぐために使用
-  const initialLocale = pageProps.preferredLanguage || pageProps.locale || 'en';
+  const initialLocale = pageProps.preferredLanguage || pageProps.locale || 'ja'; // デフォルトを日本語に変更
   const initialIsJapanese = initialLocale === 'ja';
 
   // 言語状態を管理
@@ -119,12 +119,21 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
           setLanguage(pageProps.preferredLanguage);
         } else {
           // ブラウザ設定を使用（ローカルストレージにない場合のみ）
-          const savedLang = localStorage.getItem('preferredLanguage');
-          if (!savedLang) {
-            const userLang = navigator.language.split('-')[0]; // 'ja-JP' → 'ja'
-            const detectedLang = userLang === 'ja' ? 'ja' : 'en';
-            console.log('Setting language from browser:', detectedLang);
-            setLanguage(detectedLang);
+          try {
+            const savedLang = localStorage.getItem('preferredLanguage');
+            if (!savedLang) {
+              // ブラウザの言語設定から判定（navigator.languageがない場合も対応）
+              const userLang = (navigator.language || (navigator as any).userLanguage || 'en').split('-')[0].toLowerCase(); // 'ja-JP' → 'ja'
+              // jaの場合は日本語、それ以外は英語
+              const detectedLang = userLang === 'ja' ? 'ja' : 'en';
+              console.log('Setting language from browser:', detectedLang, 'Original:', navigator.language);
+              setLanguage(detectedLang);
+            }
+          } catch (error) {
+            // localStorage/navigatorへのアクセスでエラーが発生した場合
+            console.error('Error accessing browser language:', error);
+            // デフォルト言語（日本語）を設定
+            setLanguage('ja');
           }
         }
       }
@@ -136,7 +145,9 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta charSet="utf-8" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
       </Head>
       {/* クライアントサイドでレンダリングされるまでは何も表示しない */}
       {isClient ? <Component {...pageProps} /> :
