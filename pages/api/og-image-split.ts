@@ -73,87 +73,53 @@ export default async function handler(
     ctx.lineTo(splitX, height - 80);
     ctx.stroke();
     
-    // 左側：タイトルと説明
-    // タイトル
+    // 左側：タイトルとサブタイトルのみ（留白が多いシンプルデザイン）
+
+    // マイルドな光彩効果などを加えるための圆形の光の蔵み
+    const leftGlowX = splitX * 0.5;
+    const leftGlowY = height * 0.5;
+    const leftGlow = ctx.createRadialGradient(
+      leftGlowX, leftGlowY, 50,
+      leftGlowX, leftGlowY, 400
+    );
+    leftGlow.addColorStop(0, 'rgba(29, 155, 240, 0.1)');
+    leftGlow.addColorStop(0.7, 'rgba(29, 155, 240, 0.03)');
+    leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = leftGlow;
+    ctx.beginPath();
+    ctx.arc(leftGlowX, leftGlowY, 300, 0, Math.PI * 2);
+    ctx.fill();
+
+    // タイトル - 中央揃え
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 60px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(isJapanese ? 'Grokの気持ち' : "In Grok's Mind", 60, 100);
-    
-    // サブタイトル
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 80px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(29, 155, 240, 0.8)';
+    ctx.shadowBlur = 10;
+
+    // タイトルを左側エリアの中央に配置
+    const leftCenterX = splitX / 2;
+    ctx.fillText(isJapanese ? 'Grokの気持ち' : "In Grok's Mind", leftCenterX, height * 0.35);
+
+    // サブタイトル - 中央揃え
+    ctx.font = 'bold 40px sans-serif';
     ctx.fillStyle = '#1d9bf0'; // Twitter Blue
-    ctx.textAlign = 'left';
-    ctx.fillText(isJapanese ? 'あなたのGrokなりきり度' : 'Your Grok Score', 60, 160);
-    
-    // テキストを折り返して表示する関数
-    const drawWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-      if (isJapanese) {
-        // 日本語は文字単位で折り返し
-        const chars = text.split('');
-        let line = '';
-        let currentY = y;
-        
-        for (let i = 0; i < chars.length; i++) {
-          const testLine = line + chars[i];
-          const metrics = ctx.measureText(testLine);
-          
-          if (metrics.width > maxWidth && i > 0) {
-            ctx.fillText(line, x, currentY);
-            line = chars[i];
-            currentY += lineHeight;
-            
-            if (currentY > y + lineHeight * 5) {
-              line += '...';
-              ctx.fillText(line, x, currentY);
-              break;
-            }
-          } else {
-            line = testLine;
-          }
-        }
-        if (line) {
-          ctx.fillText(line, x, currentY);
-        }
-      } else {
-        // 英語は単語単位で折り返し
-        const words = text.split(' ');
-        let line = '';
-        let currentY = y;
-        
-        for (let i = 0; i < words.length; i++) {
-          const testLine = line + words[i] + ' ';
-          const metrics = ctx.measureText(testLine);
-          
-          if (metrics.width > maxWidth && i > 0) {
-            ctx.fillText(line, x, currentY);
-            line = words[i] + ' ';
-            currentY += lineHeight;
-            
-            if (currentY > y + lineHeight * 5) {
-              line += '...';
-              ctx.fillText(line, x, currentY);
-              break;
-            }
-          } else {
-            line = testLine;
-          }
-        }
-        if (line) {
-          ctx.fillText(line, x, currentY);
-        }
-      }
-    };
-    
-    // クイズ内容を折り返して表示
-    ctx.font = '24px sans-serif';
-    ctx.fillStyle = '#e2e8f0';
-    drawWrappedText(quizContent, 60, 210, splitX - 80, 32);
-    
-    // スタイル表示
-    ctx.fillStyle = '#ff9ff3'; // 明るいピンク
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(styleName, 60, height - 120);
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    ctx.shadowBlur = 5;
+    ctx.fillText(isJapanese ? 'あなたのGrokなりきり度' : 'Your Grok Score', leftCenterX, height * 0.45);
+
+    // 影をリセット
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // 装飾的な光の線
+    ctx.strokeStyle = 'rgba(29, 155, 240, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, height * 0.55);
+    ctx.lineTo(splitX - 60, height * 0.55);
+    ctx.stroke();
     
     // 右側：スコア表示
     // スコア表示用の色とテキストを設定
