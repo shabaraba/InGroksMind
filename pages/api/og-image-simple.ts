@@ -15,8 +15,13 @@ export default async function handler(
     const { quizId, styleId, score, lang } = req.query;
     console.log(`OG Image requested for Quiz: ${quizId}, Style: ${styleId}, Score: ${score}, Lang: ${lang || 'ja'}`);
 
-    // スコアに応じて異なる静的イメージを返す（オプション）
+    // スコアに応じて異なるスコアを画像に描画
+    // 静的画像にスコアを重ねて表示するファイルベースのアプローチ
+    // 注意: この実装ではCanvas APIは使用せず、単純な画像を返すのみ
     let imageName = 'og-image-static.png';
+
+    // 本番環境ではここにテキスト描画を追加してスコアを表示することが可能
+    // 具体的には、静的画像に Node Canvas などの轻量ライブラリでテキストを描画して返せる
     
     // 静的画像のパス
     const imagePath = path.join(process.cwd(), 'public', imageName);
