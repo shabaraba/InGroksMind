@@ -24,15 +24,29 @@ export const getGeminiAnswerServer = async (
     const styleName = locale === 'ja' ? style.name_ja : style.name_en;
     const styleDesc = locale === 'ja' ? style.description_ja : style.description_en;
 
-    // プロンプトテキスト
-    const prompt = "以下の投稿にたいしてファクトチェックしてください:\n\n" +
-      "投稿: " + content + "\n" +
-      "指定された口調: " + styleName + "\n" +
-      "指定口調の説明: " + styleDesc + "\n\n" +
-      "注意: \n" +
-      "- 回答は指定された口調で行ってください\n" +
-      "- 事実に基づいた正確な情報を提供してください\n" +
-      "- 回答は200〜300文字程度にしてください";
+    // プロンプトテキスト (言語によって切り替え)
+    let prompt;
+    if (locale === 'ja') {
+      prompt = "以下の投稿にたいしてファクトチェックしてください:\n\n" +
+        "投稿: " + content + "\n" +
+        "指定された口調: " + styleName + "\n" +
+        "指定口調の説明: " + styleDesc + "\n\n" +
+        "注意: \n" +
+        "- 回答は指定された口調で行ってください\n" +
+        "- 事実に基づいた正確な情報を提供してください\n" +
+        "- 回答は200〜300文字程度にしてください\n" +
+        "- 必ず日本語で回答してください";
+    } else {
+      prompt = "Please fact-check the following post:\n\n" +
+        "Post: " + content + "\n" +
+        "Specified tone: " + styleName + "\n" +
+        "Tone description: " + styleDesc + "\n\n" +
+        "Note: \n" +
+        "- Answer in the specified tone\n" +
+        "- Provide accurate information based on facts\n" +
+        "- Keep your answer around 200-300 characters\n" +
+        "- Answer in English";
+    }
 
     // Gemini APIのエンドポイント
     const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -97,23 +111,46 @@ export const evaluateAnswerServer = async (
     const styleName = locale === 'ja' ? style.name_ja : style.name_en;
     const styleDesc = locale === 'ja' ? style.description_ja : style.description_en;
 
-    // プロンプトテキスト作成
-    let prompt = "以下の雑学お題に対するユーザー回答を厳格に評価してください:\n\n" +
-      "お題: " + content + "\n" +
-      "指定された口調: " + styleName + "\n" +
-      "指定口調の説明: " + styleDesc + "\n" +
-      "ユーザー回答: " + userAnswer + "\n\n";
+    // プロンプトテキスト作成 (言語によって切り替え)
+    let prompt;
+
+    if (locale === 'ja') {
+      prompt = "以下の雑学お題に対するユーザー回答を厳格に評価してください:\n\n" +
+        "お題: " + content + "\n" +
+        "指定された口調: " + styleName + "\n" +
+        "指定口調の説明: " + styleDesc + "\n" +
+        "ユーザー回答: " + userAnswer + "\n\n";
+    } else {
+      prompt = "Please strictly evaluate the user's answer to the following trivia topic:\n\n" +
+        "Topic: " + content + "\n" +
+        "Specified tone: " + styleName + "\n" +
+        "Tone description: " + styleDesc + "\n" +
+        "User answer: " + userAnswer + "\n\n";
+    }
 
     // Geminiの回答がある場合は比較対象として追加
     if (geminiAnswer) {
-      prompt += "参考（Geminiの回答）: " + geminiAnswer.content + "\n\n" +
-      "以下の2点について評価し、0〜50点で採点してください:\n" +
-      "1. 回答の正確性 (実際の事実と照らし合わせて、Geminiの回答も参考にする)\n" +
-      "2. 指定された口調の再現度\n\n";
+      if (locale === 'ja') {
+        prompt += "参考（Geminiの回答）: " + geminiAnswer.content + "\n\n" +
+        "以下の2点について評価し、0〜50点で採点してください:\n" +
+        "1. 回答の正確性 (実際の事実と照らし合わせて、Geminiの回答も参考にする)\n" +
+        "2. 指定された口調の再現度\n\n";
+      } else {
+        prompt += "Reference (Gemini's answer): " + geminiAnswer.content + "\n\n" +
+        "Please evaluate and score the following two points from 0 to 50:\n" +
+        "1. Accuracy of the answer (compared to actual facts, also referencing Gemini's answer)\n" +
+        "2. Reproduction of the specified tone\n\n";
+      }
     } else {
-      prompt += "以下の2点について評価し、0〜50点で採点してください:\n" +
-      "1. 回答の正確性 (実際の事実と照らし合わせて)\n" +
-      "2. 指定された口調の再現度\n\n";
+      if (locale === 'ja') {
+        prompt += "以下の2点について評価し、0〜50点で採点してください:\n" +
+        "1. 回答の正確性 (実際の事実と照らし合わせて)\n" +
+        "2. 指定された口調の再現度\n\n";
+      } else {
+        prompt += "Please evaluate and score the following two points from 0 to 50:\n" +
+        "1. Accuracy of the answer (compared to actual facts)\n" +
+        "2. Reproduction of the specified tone\n\n";
+      }
     }
 
     prompt +=
