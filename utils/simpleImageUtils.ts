@@ -15,12 +15,12 @@ export const generateOgImageUrl = (
   const language = locale === 'ja' ? 'ja' : 'en';
   
   try {
-    // 左右分割レイアウト・スコア表示付きOG画像エンドポイントを使用
+    // OG画像に関する問題を解決するため、動的APIではなく静的画像ファイルを使用
     // キャッシュを無効化するためのタイムスタンプパラメータを追加
     const timestamp = new Date().getTime();
-    return `${protocol}://${host}/api/og-image-split?quizId=${quizId}&styleId=${styleId}&score=${score}&lang=${language}&t=${timestamp}`;
+    return `${protocol}://${host}/og-image-home-new.png?t=${timestamp}`;
   } catch (error) {
-    // エラーが発生した場合は最もシンプルな静的APIエンドポイントを使用
-    return `${protocol}://${host}/api/og-image-static`;
+    // エラーが発生した場合は最もシンプルな静的画像ファイルを使用
+    return `${protocol}://${host}/og-image-static.png`;
   }
 };

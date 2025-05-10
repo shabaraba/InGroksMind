@@ -174,13 +174,13 @@ const ResultPage: NextPage<ResultPageProps> = ({
           : `${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={resultUrl} />
-        <meta property="og:image" content={`${ogImageUrl}&refresh=${Date.now()}`} />
+        <meta property="og:image" content={ogImageUrl} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={`${ogImageUrl}&refresh=${Date.now()}`} />
+        <meta name="twitter:image" content={ogImageUrl} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
