@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-og-home": "node scripts/generate-home-og.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
