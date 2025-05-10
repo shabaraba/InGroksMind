@@ -13,7 +13,7 @@ export const getOgImageFilename = (
   quizId: number,
   styleId: number,
   score: number,
-  locale: string = 'en'
+  locale: string = 'ja'
 ): string => {
   const langParam = locale === 'ja' ? 'ja' : 'en';
   return `og-${quizId}-${styleId}-${score}-${langParam}.png`;
@@ -24,7 +24,7 @@ export const getOgImagePath = (
   quizId: number,
   styleId: number,
   score: number,
-  locale: string = 'en'
+  locale: string = 'ja'
 ): string => {
   const filename = getOgImageFilename(quizId, styleId, score, locale);
   return path.join(process.cwd(), 'tmp', 'og-images', filename);
@@ -35,7 +35,7 @@ export const generateOgImageUrl = (
   quizId: number,
   styleId: number,
   score: number,
-  locale: string = 'en',
+  locale: string = 'ja',
   host: string = 'localhost:3000'
 ): string => {
   const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -100,7 +100,7 @@ export const generateAndSaveOgImage = async (
   score: number,
   quiz: QuizItem,
   style: StyleVariation,
-  locale: string = 'en'
+  locale: string = 'ja'
 ): Promise<string> => {
   try {
     // OG画像の保存パスを取得
@@ -480,7 +480,7 @@ export const generateShareText = (
   quiz: QuizItem,
   style: StyleVariation,
   score: number,
-  locale: string = 'en',
+  locale: string = 'ja',
   url?: string
 ): string => {
   const t = getTranslationForLocale(locale);
