@@ -25,8 +25,8 @@ interface LanguageContextType {
 }
 
 export const LanguageContext = createContext<LanguageContextType>({
-  language: 'en',
-  isJapanese: false,
+  language: 'ja',
+  isJapanese: true,
   setLanguage: () => {}
 });
 

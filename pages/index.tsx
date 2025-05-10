@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { getTranslation } from '../i18n/translations';
 import { quizData } from '../data/quizData';
 import { styleVariations } from '../data/styleVariations';
-import { evaluateAnswer, generateResultId } from '../utils/geminiService';
+import { generateResultId } from '../utils/geminiService';
 import { FeedbackData } from '../utils/types';
 import { LanguageContext } from './_app';
 import { getRandomUser, getGrokUser, virtualUsers } from '../data/virtualUsers';
@@ -125,14 +125,15 @@ export default function Home() {
 
     setIsSubmitting(true);
     try {
-      // 回答評価APIを呼び出し（言語情報も渡し、Geminiの回答も取得する）
-      const feedback = await evaluateAnswer(quiz, style, answer, isJapanese ? 'ja' : 'en', true);
+      // クライアント側では評価せず、ダミーデータを作成して結果ページに転送
+      // 実際の評価は結果ページのサーバーサイドで行われる
+      const dummyScore = 70; // ダミースコア（実際のスコアはサーバーサイドで計算される）
 
       // 結果ID生成
-      const resultId = generateResultId(quizId, styleId, feedback.total_score);
+      const resultId = generateResultId(quizId, styleId, dummyScore);
 
       // Google Analyticsにイベントを送信
-      ga.trackAnswerSubmission(feedback.total_score, isJapanese ? style.name_ja : style.name_en);
+      ga.trackAnswerSubmission(dummyScore, isJapanese ? style.name_ja : style.name_en);
 
       // パラメータを設定（直接アクセスフラグを含む）
       const params = new URLSearchParams({
@@ -140,8 +141,7 @@ export default function Home() {
         lang: isJapanese ? 'ja' : 'en',
         quizUserId: quizUser.id.toString(),
         replyUserId: replyUser.id.toString(),
-        direct: '1', // 自分で回答した場合は直接アクセスとマーク
-        has_gemini: feedback.gemini_answer ? '1' : '0' // Gemini回答があるかどうかのフラグ
+        direct: '1' // 自分で回答した場合は直接アクセスとマーク
       });
 
       // 結果ページにリダイレクト (言語パラメータとユーザーIDを含める)
@@ -297,13 +297,13 @@ export default function Home() {
                         disabled={answer.trim() === '' || isSubmitting}
                       >
                         {isSubmitting ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <div className="flex items-center justify-center">
+                            <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            {t.buttonEvaluating}
-                          </>
+                            <span>{t.buttonEvaluating}</span>
+                          </div>
                         ) : (
                           t.buttonSubmit
                         )}

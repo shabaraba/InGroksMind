@@ -42,10 +42,13 @@ const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
           </div>
 
           <p className="text-gray-400 text-sm mb-2">
-            {isJapanese ? '参考回答:' : 'Reference answer:'}
+            {isJapanese ? '返信先:' : 'Replying to:'} <span className="text-twitter-blue">@grok</span>
           </p>
 
           <div className="text-white whitespace-pre-wrap mb-4">
+            {/* 冒頭に回答例であることを示す文言を追加 */}
+            <p className="mb-2">{isJapanese ? '回答するならこんな感じかな👇' : 'If I were to answer, it would be something like this👇'}</p>
+
             {/* APIエラーメッセージを含む場合は、その部分を強調表示 */}
             {content.includes('※') ? (
               <div>

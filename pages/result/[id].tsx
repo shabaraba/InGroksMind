@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
 import { getGrokUser } from '../../data/virtualUsers';
 import { initializeUsers } from '../../utils/userHelpers';
-import { createFeedbackData } from '../../utils/feedbackHelpers';
+import { getGeminiAnswerServer, evaluateAnswerServer } from '../../utils/geminiServerService';
 import Post from '../../components/Post';
 import ReplyRequest from '../../components/ReplyRequest';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
@@ -35,7 +35,7 @@ interface ResultPageProps {
   resultUrl: string;
   shareText: string;
   isSharedView: boolean; // シェアから訪問したかどうかのフラグ
-  initialGeminiAnswer?: GeminiAnswer; // Gemini回答の初期値
+  feedbackData: FeedbackData; // サーバーサイドで生成したフィードバックデータ
 }
 
 // 結果ページコンポーネント
@@ -50,7 +50,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
   resultUrl,
   shareText,
   isSharedView,
-  initialGeminiAnswer
+  feedbackData
 }) => {
   const router = useRouter();
   const { isJapanese, setLanguage } = useContext(LanguageContext);
@@ -71,6 +71,31 @@ const ResultPage: NextPage<ResultPageProps> = ({
       setLanguage(locale);
     }
   }, [locale, setLanguage]);
+
+  // ページ読み込み後、少し遅れてGrok回答の少し上にスクロール（シェアからの訪問時はスクロールしない）
+  useEffect(() => {
+    // シェアURLからの訪問の場合はスクロールしない
+    if (!isSharedView && grokAnswerRef.current) {
+      const timer = setTimeout(() => {
+        // Grok回答の位置を取得
+        const grokElement = grokAnswerRef.current;
+        if (!grokElement) return;
+
+        const rect = grokElement.getBoundingClientRect();
+
+        // 一つ前のポストの下部が少し見えるよう、上方向に少しオフセット
+        const scrollPosition = window.scrollY + rect.top - 80;
+
+        // スムーズにスクロール
+        window.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSharedView]);
 
   // 言語が変更されたときに翻訳も更新
   useEffect(() => {
@@ -102,6 +127,10 @@ const ResultPage: NextPage<ResultPageProps> = ({
   const [quizUser, setQuizUser] = useState(initialUsers[0]);
   const [replyUser, setReplyUser] = useState(initialUsers[1]);
   const [currentGrokUser, setCurrentGrokUser] = useState(getGrokUser(isJapanese));
+  // シェアURL(isSharedView=true)からの訪問時は参考ポストを最初から表示
+  const [showReferencePost, setShowReferencePost] = useState(isSharedView);
+  const [showShowMoreButton, setShowShowMoreButton] = useState(false);
+  const grokAnswerRef = useRef<HTMLDivElement>(null);
 
   // 言語が変更されたときにユーザー名を更新
   useEffect(() => {
@@ -111,11 +140,18 @@ const ResultPage: NextPage<ResultPageProps> = ({
     setReplyUser(updatedUsers[1]);
     setCurrentGrokUser(getGrokUser(isJapanese));
   }, [isJapanese, resultId, quizId, quizUserId, replyUserId]);
-  
-  // 評価結果データを生成（useMemoで言語変更時に再計算）
-  const feedback = React.useMemo<FeedbackData>(() => {
-    return createFeedbackData(score, isJapanese, quiz, style, initialGeminiAnswer);
-  }, [isJapanese, score, style, quiz, initialGeminiAnswer]);
+
+  // 評価結果表示後、3秒後に「1件のポストを表示」ボタンを表示（シェア訪問時は表示しない）
+  useEffect(() => {
+    // シェアからの訪問でない場合のみ、ボタン表示のタイマーを設定
+    if (feedbackData.gemini_answer && !isSharedView) {
+      const timer = setTimeout(() => {
+        setShowShowMoreButton(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [feedbackData.gemini_answer, isSharedView]);
   
   // Xでシェアする
   const handleShare = () => {
@@ -189,7 +225,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
             />
             
             {/* Grokの回答 */}
-            <div className="p-4 pl-12 border-b border-gray-700">
+            <div className="p-4 pl-12 border-b border-gray-700" ref={grokAnswerRef}>
               <div className="flex items-start">
                 <div
                   className="mr-3 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold"
@@ -204,11 +240,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
                       <p className="text-gray-400 text-sm">@{currentGrokUser.username} · {t.justNow}</p>
                     </div>
                   </div>
-                  
+
                   <p className="text-gray-400 text-sm mb-2">
                     {isJapanese ? '返信先:' : 'Replying to:'} <span className="text-twitter-blue">@{replyUser.username}</span>
                   </p>
-                  
+
                   <div className="text-white whitespace-pre-wrap">
                     {userAnswer}
                   </div>
@@ -218,10 +254,23 @@ const ResultPage: NextPage<ResultPageProps> = ({
               </div>
             </div>
 
+            {/* Geminiの評価 */}
+            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={resultId} />
+
+            {/* 「1件のポストを表示」ボタン */}
+            {feedbackData.gemini_answer && showShowMoreButton && !showReferencePost && (
+              <button
+                onClick={() => setShowReferencePost(true)}
+                className="w-full py-2 text-twitter-blue hover:bg-gray-800/50 transition-colors border-t border-b border-gray-700 font-medium text-sm"
+              >
+                {isJapanese ? '1件のポストを表示' : 'Show 1 post'}
+              </button>
+            )}
+
             {/* Geminiの回答表示 */}
-            {feedback.gemini_answer && (
+            {feedbackData.gemini_answer && showReferencePost && (
               <GeminiAnswerDisplay
-                geminiAnswer={feedback.gemini_answer}
+                geminiAnswer={feedbackData.gemini_answer}
                 resultId={resultId}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
@@ -229,14 +278,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
             )}
 
             {/* デバッグメッセージ（開発用のみ） */}
-            {process.env.NODE_ENV === 'development' && !feedback.gemini_answer && (
+            {process.env.NODE_ENV === 'development' && !feedbackData.gemini_answer && (
               <div className="p-4 bg-red-100 text-red-800 border border-red-200 rounded-md mt-2 mb-2">
                 <p>Debug: Gemini回答が取得できませんでした。</p>
               </div>
             )}
-
-            {/* Geminiの評価 */}
-            <GeminiFeedback feedback={feedback} t={t} isJapanese={isJapanese} resultId={resultId} />
           </div>
 
           {/* シェアボタン */}
@@ -308,9 +354,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     params.forEach((value, key) => { context.query[key] = value; });
   }
 
-  // ユーザーの回答とGemini回答フラグを取得
+  // ユーザーの回答を取得
   const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
-  const hasGemini = context.query.has_gemini === '1';
 
   try {
     // IDからクイズID, スタイルID, スコアを抽出
@@ -326,7 +371,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     }
 
     const { quizId, styleId, score } = resultData;
-
+    
     // クイズとスタイルの存在確認
     const quiz = quizData.find(q => q.id === quizId);
     const style = styleVariations.find(s => s.id === styleId);
@@ -338,7 +383,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
           permanent: false,
         },
       };
-    };
+    }
 
     // ホスト名取得
     const host = context.req.headers.host || 'localhost:3000';
@@ -363,14 +408,32 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     const isFromSameOrigin = referer.includes(host_parts);
     const isSharedView = !isDirect && !isFromSameOrigin;
 
-    // Gemini回答データ生成
-    let initialGeminiAnswer = undefined;
-    if (hasGemini && quiz && style) {
-      initialGeminiAnswer = {
-        content: locale === 'ja'
-          ? `これはGeminiの模範解答です。${quiz.content_ja}について、${style.name_ja}の口調でお答えします。このお題についての正確な情報をご提供します。`
-          : `This is a model answer from Gemini. I'll answer about ${quiz.content_en} in the style of ${style.name_en}. Let me provide you with accurate information about this topic.`,
-        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+    // サーバーサイドでGemini回答を取得
+    const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    
+    // サーバーサイドで回答評価
+    let feedbackData;
+    if (userAnswer) {
+      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+    } else {
+      // 評価結果のみ渡す（フィードバック部分だけを含める）
+      const accuracyScore = Math.floor(score / 2);
+      const styleScore = score - accuracyScore;
+      
+      feedbackData = {
+        accuracy_score: accuracyScore,
+        accuracy_comment: accuracyScore >= 40 ? 
+          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") : 
+          (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average."),
+        style_score: styleScore,
+        style_comment: styleScore >= 40 ? 
+          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) : 
+          (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`),
+        total_score: score,
+        overall_comment: score >= 80 ? 
+          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") : 
+          (locale === 'ja' ? "良い回答です。" : "Good answer."),
+        gemini_answer: geminiAnswer
       };
     }
 
@@ -386,8 +449,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
         resultUrl,
         shareText,
         isSharedView,
-        preferredLanguage: locale,
-        initialGeminiAnswer
+        feedbackData
       }
     };
   } catch (error) {
