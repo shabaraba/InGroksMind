@@ -28,8 +28,9 @@ yarn-debug.log*
 yarn-error.log*
 **/.claude/settings.local.json
 
-# Local Netlify folder
-.netlify
+# Local Netlify folder except for functions
+.netlify/*
+!.netlify/functions/
 
 # temporary test images
 test-og-image.png
