@@ -26,6 +26,11 @@ export default function Document() {
             />
           </>
         )}
+
+        {/* Add default OG image fallback metadata */}
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
       </Head>
       <body>
         <Main />
