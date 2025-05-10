@@ -211,14 +211,14 @@ export default function Home() {
         <meta property="og:title" content={t.appTitle} />
         <meta property="og:description" content={t.appDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/og-image-home`} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png`} />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_SITE_URL || ''} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t.appTitle} />
         <meta name="twitter:description" content={t.appDescription} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/og-image-home`} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">

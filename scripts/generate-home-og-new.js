@@ -1,29 +1,19 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createCanvas, loadImage } from 'canvas';
-import fs from 'fs';
-import path from 'path';
+// トップページ用更新版 OG画像生成スクリプト - インタラクションアイコンなし
+const fs = require('fs');
+const path = require('path');
+const { Canvas } = require('skia-canvas');
 
-/**
- * トップページ用動的OG画像API
- * 中央にタイトルと、ファクトチェックのポストを表示
- */
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// 出力ファイルパス
+const outputPath = path.join(__dirname, '../public/og-image-home-new.png');
+
+async function generateImage() {
   try {
-    // クエリパラメータを取得（langパラメータのみ使用）
-    const { lang } = req.query;
-    const locale = (lang as string) === 'en' ? 'en' : 'ja';
-    const isJapanese = locale === 'ja';
-
-    // 画像サイズ
+    // Canvas作成
     const canvasWidth = 1200;
     const canvasHeight = 630;
-
-    // Canvas作成
-    const canvas = createCanvas(canvasWidth, canvasHeight);
+    const canvas = new Canvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
+    const isJapanese = true; // 日本語版をデフォルトで生成
 
     // 背景色（宇宙風グラデーション - 中央から暗くなる）
     const centerX = canvasWidth / 2;
@@ -197,30 +187,15 @@ export default async function handler(
     ctx.textAlign = 'right';
     ctx.fillText('© from-garage 2025', canvasWidth - 40, canvasHeight - 22);
 
-    // PNGとして出力
-    const buffer = canvas.toBuffer('image/png');
+    // 画像をファイルに書き出し
+    const buffer = await canvas.toBuffer('png');
+    fs.writeFileSync(outputPath, buffer);
 
-    // レスポンスヘッダーを設定
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate'); // キャッシュを無効化
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-
-    // 画像を返す
-    res.status(200).send(buffer);
+    console.log(`トップページ用更新版OG画像が生成されました: ${outputPath}`);
   } catch (error) {
-    console.error('Error generating home OG image:', error);
-
-    // エラー時は静的画像を返す
-    try {
-      const staticImagePath = path.join(process.cwd(), 'public', 'og-image-home.png');
-      const imageBuffer = fs.readFileSync(staticImagePath);
-
-      res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.status(200).send(imageBuffer);
-    } catch (fallbackError) {
-      res.status(500).json({ error: 'Failed to generate image' });
-    }
+    console.error('Error generating updated home OG image:', error);
   }
 }
+
+// 画像生成を実行
+generateImage();

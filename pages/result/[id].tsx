@@ -174,13 +174,13 @@ const ResultPage: NextPage<ResultPageProps> = ({
           : `${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={resultUrl} />
-        <meta property="og:image" content={ogImageUrl} />
-        
+        <meta property="og:image" content={`${ogImageUrl}&refresh=${Date.now()}`} />
+
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={ogImageUrl} />
+        <meta name="twitter:image" content={`${ogImageUrl}&refresh=${Date.now()}`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
@@ -391,28 +391,10 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     
     // 単純なAPIエンドポイントを使用してOG画像URLを生成
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
-    const ogImageUrl = generateOgImageUrl(quizId, styleId, score, locale, host);
-    
-    // 結果ページURL生成
-    const resultUrl = generateResultUrl(
-      id, host, userAnswer, locale,
-      context.query.quizUserId as string,
-      context.query.replyUserId as string
-    );
-    
-    // シェアテキスト生成
-    const shareText = generateShareText(quiz, style, score, locale, resultUrl);
-    
-    // シェアからの訪問判定
-    const referer = context.req.headers.referer || '';
-    const host_parts = host.split(':')[0];
-    const isDirect = context.query.direct === '1';
-    const isFromSameOrigin = referer.includes(host_parts);
-    const isSharedView = !isDirect && !isFromSameOrigin;
 
     // サーバーサイドでGemini回答を取得
     const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
-    
+
     // サーバーサイドで回答評価
     let feedbackData;
     if (userAnswer) {
@@ -421,23 +403,44 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
       // 評価結果のみ渡す（フィードバック部分だけを含める）
       const accuracyScore = Math.floor(score / 2);
       const styleScore = score - accuracyScore;
-      
+
       feedbackData = {
         accuracy_score: accuracyScore,
-        accuracy_comment: accuracyScore >= 40 ? 
-          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") : 
+        accuracy_comment: accuracyScore >= 40 ?
+          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") :
           (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average."),
         style_score: styleScore,
-        style_comment: styleScore >= 40 ? 
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) : 
+        style_comment: styleScore >= 40 ?
+          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) :
           (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`),
         total_score: score,
-        overall_comment: score >= 80 ? 
-          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") : 
+        overall_comment: score >= 80 ?
+          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
           (locale === 'ja' ? "良い回答です。" : "Good answer."),
         gemini_answer: geminiAnswer
       };
     }
+
+    // 実際のスコアをOG画像のURL生成に使用
+    const actualScore = feedbackData.total_score;
+    const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
+
+    // 結果ページURL生成
+    const resultUrl = generateResultUrl(
+      id, host, userAnswer, locale,
+      context.query.quizUserId as string,
+      context.query.replyUserId as string
+    );
+
+    // シェアテキスト生成
+    const shareText = generateShareText(quiz, style, score, locale, resultUrl);
+
+    // シェアからの訪問判定
+    const referer = context.req.headers.referer || '';
+    const host_parts = host.split(':')[0];
+    const isDirect = context.query.direct === '1';
+    const isFromSameOrigin = referer.includes(host_parts);
+    const isSharedView = !isDirect && !isFromSameOrigin;
 
     return {
       props: {
