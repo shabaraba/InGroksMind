@@ -7,7 +7,7 @@ import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
-import { generateOgImageUrl, generateResultUrl, generateShareText } from '../../utils/imageUtils';
+import { generateOgImageUrl, generateResultUrl, generateShareText, generateAndSaveOgImage } from '../../utils/imageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
@@ -388,6 +388,14 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // ホスト名取得
     const host = context.req.headers.host || 'localhost:3000';
     
+    // OG画像を生成してファイルに保存し、URLを生成
+    try {
+      // サーバーサイドでOG画像を生成
+      await generateAndSaveOgImage(quizId, styleId, score, quiz, style, locale);
+    } catch (error) {
+      console.error('Error generating OG image:', error);
+    }
+
     // OG画像URL生成
     const ogImageUrl = generateOgImageUrl(quizId, styleId, score, locale, host);
     

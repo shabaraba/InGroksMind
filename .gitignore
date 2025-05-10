@@ -33,3 +33,6 @@ yarn-error.log*
 
 # temporary test images
 test-og-image.png
+
+# generated OG images
+/tmp/
