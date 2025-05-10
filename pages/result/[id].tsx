@@ -8,7 +8,7 @@ import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
 import { generateResultUrl, generateShareText } from '../../utils/imageUtils';
-import { generateNetlifyOgImageUrl } from '../../utils/netlifyImageUtils';
+import { generateOgImageUrl } from '../../utils/simpleImageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
@@ -389,9 +389,9 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // ホスト名取得
     const host = context.req.headers.host || 'localhost:3000';
     
-    // Netlify Functions を使用してOG画像URLを生成
-    // ローカル環境と本番環境でフォールバック処理が実装されている
-    const ogImageUrl = generateNetlifyOgImageUrl(quizId, styleId, score, locale, host);
+    // 単純なAPIエンドポイントを使用してOG画像URLを生成
+    // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
+    const ogImageUrl = generateOgImageUrl(quizId, styleId, score, locale, host);
     
     // 結果ページURL生成
     const resultUrl = generateResultUrl(
