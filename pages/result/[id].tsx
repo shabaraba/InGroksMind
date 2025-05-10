@@ -390,6 +390,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     const host = context.req.headers.host || 'localhost:3000';
     
     // Netlify Functions を使用してOG画像URLを生成
+    // ローカル環境と本番環境でフォールバック処理が実装されている
     const ogImageUrl = generateNetlifyOgImageUrl(quizId, styleId, score, locale, host);
     
     // 結果ページURL生成
