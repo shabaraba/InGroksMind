@@ -467,23 +467,10 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // 実際のスコアをOG画像のURL生成に使用
     const actualScore = feedbackData.total_score;
 
-    // OG画像URLの生成
-    let ogImageUrl;
-
-    // エラーが発生している場合、または静的フォールバックが必要な場合
-    if (hasErrors || process.env.NETLIFY === 'true') {
-      // Netlify環境または他のエラーがある場合は常に静的フォールバックを使用
-      ogImageUrl = getStaticOgImageUrl(locale, host);
-      console.log('Using static OG image fallback due to Netlify environment or previous errors');
-    } else {
-      try {
-        // ローカル環境または他の環境では動的OG画像を試みる
-        ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
-      } catch (error) {
-        console.warn('Error generating dynamic OG image URL, using static fallback:', error);
-        ogImageUrl = getStaticOgImageUrl(locale, host);
-      }
-    }
+    // OG画像URLの生成 - すべてのページで統一されたOG画像を使用
+    // どの環境でも常に同じ静的OG画像を使用
+    const ogImageUrl = getStaticOgImageUrl(locale, host);
+    console.log('Using static OG image for all pages');
 
     // 結果ページURL生成
     const resultUrl = generateResultUrl(
