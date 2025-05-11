@@ -167,20 +167,24 @@ const ResultPage: NextPage<ResultPageProps> = ({
         <title>{pageTitle}</title>
         <meta name="description" content={`${content} - ${isSharedView ? t.sharedResultView : t.resultTitle}: ${score}/100`} />
 
-        {/* OGP メタタグ */}
+        {/* OGP メタタグ - 完全化（一部のプラットフォームでは認識しない場合がある） */}
         <meta property="og:title" content={pageTitle} />
+        <meta property="og:site_name" content={t.appTitle} />
         <meta property="og:description" content={isSharedView
           ? `${content} - ${styleName} スタイルでの回答 (${score}/100)`
           : `${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={resultUrl} />
-        <meta property="og:image" content={ogImageUrl} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png?v=2`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
 
-        {/* Twitter Card */}
+        {/* Twitter Card - 完全化 */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={ogImageUrl} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png?v=2`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">

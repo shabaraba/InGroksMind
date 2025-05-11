@@ -1,4 +1,4 @@
-// シンプルなOG画像ユーティリティ（Netlify Functionsではなく、Next.jsのAPIルートを使用）
+// シンプルなOG画像ユーティリティ（Netlify Functionsに依存しない実装）
 
 import { QuizItem } from '../data/quizData';
 import { StyleVariation } from '../data/styleVariations';
@@ -14,14 +14,7 @@ export const generateOgImageUrl = (
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const language = locale === 'ja' ? 'ja' : 'en';
 
-  try {
-    // 結果に基づく動的OG画像を生成するためのAPI URLを生成
-    // キャッシュを防ぐためにタイムスタンプパラメータを追加
-    const timestamp = new Date().getTime();
-    return `${protocol}://${host}/api/og-image/${quizId}-${styleId}-${score}-${language}?t=${timestamp}`;
-  } catch (error) {
-    console.error('Error generating OG image URL:', error);
-    // エラーが発生した場合はフォールバック用のデフォルトOG画像APIエンドポイントを使用
-    return `${protocol}://${host}/api/og-image/default?lang=${language}`;
-  }
+  // OG画像URLの生成を静的なファイルに変更（キャッシュを防ぐためにクエリパラメータを追加）
+  // ここでは動的な生成を試みず、直接静的ファイルを返す
+  return `${protocol}://${host}/og-image-home-new.png?v=2`;
 };
