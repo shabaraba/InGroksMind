@@ -27,6 +27,13 @@
 
 # Netlifyでのnode-canvas依存関係はsetupスクリプトで処理
 
+# Netlify関数のビルド設定
+[functions]
+  # 関数ビルド時の依存関係のインストール方法
+  node_bundler = "esbuild"
+  # 関数に含めるパッケージの指定
+  external_node_modules = ["canvas"]
+
 # リダイレクト設定（Next.jsが自動的に処理するため少なくて済む）
 [[redirects]]
   from = "/*"

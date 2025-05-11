@@ -8,7 +8,7 @@ import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
 import { generateResultUrl, generateShareText } from '../../utils/imageUtils';
-import { generateOgImageUrl } from '../../utils/simpleImageUtils';
+import { generateOgImageUrl, getStaticOgImageUrl } from '../../utils/simpleImageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
@@ -423,7 +423,22 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
 
     // 実際のスコアをOG画像のURL生成に使用
     const actualScore = feedbackData.total_score;
-    const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
+
+    // Netlify環境でのデプロイで内部エラーが発生する場合は静的フォールバックを使用
+    let ogImageUrl;
+    try {
+      // まずは動的OG画像を試みる
+      ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
+
+      // エラー発生を検出するために簡単なテスト（本番環境のみ）
+      if (process.env.NODE_ENV === 'production' && process.env.NETLIFY === 'true') {
+        // Netlify環境では静的フォールバックを優先
+        ogImageUrl = getStaticOgImageUrl(locale, host);
+      }
+    } catch (error) {
+      console.warn('Error generating dynamic OG image URL, using static fallback:', error);
+      ogImageUrl = getStaticOgImageUrl(locale, host);
+    }
 
     // 結果ページURL生成
     const resultUrl = generateResultUrl(
