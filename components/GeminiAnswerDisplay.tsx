@@ -8,22 +8,28 @@ interface GeminiAnswerDisplayProps {
   resultId: string;
   locale: string;
   t: any; // 翻訳オブジェクト
+  isReference?: boolean; // 参考回答かどうかのフラグ
 }
 
-const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({ 
-  geminiAnswer, 
-  resultId, 
+const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
+  geminiAnswer,
+  resultId,
   locale,
-  t
+  t,
+  isReference
 }) => {
-  const { content, avatar_url } = geminiAnswer;
-  
+  const { content, avatar_url, is_reference } = geminiAnswer;
+
+  // isReferenceプロパティが明示的に渡された場合はそれを使用し、
+  // そうでない場合はgeminiAnswerのis_referenceを使用
+  const actualIsReference = isReference !== undefined ? isReference : (is_reference || false);
+
   // Geminiのアバターと情報
-  const geminiAvatar = "#EA4335"; // Google Redを使用
-  const geminiName = "Gemini";
-  const geminiUsername = "gemini";
+  const geminiAvatar = actualIsReference ? "#4285F4" : "#EA4335"; // 参考回答の場合は青、通常回答の場合は赤
+  const geminiName = actualIsReference ? "Gemini Reference" : "Gemini";
+  const geminiUsername = actualIsReference ? "gemini_ref" : "gemini";
   const isJapanese = locale === 'ja';
-  
+
   return (
     <div className="p-4 pl-12 border-b border-gray-700">
       <div className="flex items-start">
@@ -46,8 +52,12 @@ const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
           </p>
 
           <div className="text-white whitespace-pre-wrap mb-4">
-            {/* 冒頭に回答例であることを示す文言を追加 */}
-            <p className="mb-2">{isJapanese ? '回答するならこんな感じかな👇' : 'If I were to answer, it would be something like this👇'}</p>
+            {/* 冒頭に回答例であることを示す文言を追加 - 参考回答かどうかで表示を変える */}
+            <p className="mb-2">
+              {actualIsReference
+                ? (isJapanese ? '事実に基づく客観的な情報はこちら👇' : 'Here is factual, objective information👇')
+                : (isJapanese ? '回答するならこんな感じかな👇' : 'If I were to answer, it would be something like this👇')}
+            </p>
 
             {/* APIエラーメッセージを含む場合は、その部分を強調表示 */}
             {content.includes('※') ? (
@@ -59,7 +69,7 @@ const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
           </div>
 
           {/* インタラクションボタン - 結果IDとgeminiをシードとして使用 */}
-          <PostInteractions seed={`gemini-answer-${resultId}`} />
+          <PostInteractions seed={`gemini-${actualIsReference ? 'reference-' : ''}answer-${resultId}`} />
         </div>
       </div>
     </div>

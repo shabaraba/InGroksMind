@@ -14,7 +14,7 @@ import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
 import { getGrokUser } from '../../data/virtualUsers';
 import { initializeUsers } from '../../utils/userHelpers';
-import { getGeminiAnswerServer, evaluateAnswerServer } from '../../utils/geminiServerService';
+import { getGeminiAnswerServer, getGeminiReferenceAnswerServer, evaluateAnswerServer } from '../../utils/geminiServerService';
 import Post from '../../components/Post';
 import ReplyRequest from '../../components/ReplyRequest';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
@@ -258,13 +258,13 @@ const ResultPage: NextPage<ResultPageProps> = ({
             {/* Geminiの評価 */}
             <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={resultId} />
 
-            {/* 「1件のポストを表示」ボタン */}
+            {/* 参考回答を表示するボタン */}
             {feedbackData.gemini_answer && showShowMoreButton && !showReferencePost && (
               <button
                 onClick={() => setShowReferencePost(true)}
                 className="w-full py-2 text-twitter-blue hover:bg-gray-800/50 transition-colors border-t border-b border-gray-700 font-medium text-sm"
               >
-                {isJapanese ? '1件のポストを表示' : 'Show 1 post'}
+                {isJapanese ? '2件のポストを表示' : 'Show 2 posts'}
               </button>
             )}
 
@@ -275,6 +275,17 @@ const ResultPage: NextPage<ResultPageProps> = ({
                 resultId={resultId}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
+              />
+            )}
+
+            {/* Geminiの参考回答表示 */}
+            {feedbackData.gemini_reference_answer && showReferencePost && (
+              <GeminiAnswerDisplay
+                geminiAnswer={feedbackData.gemini_reference_answer}
+                resultId={resultId}
+                locale={isJapanese ? 'ja' : 'en'}
+                t={t}
+                isReference={true}
               />
             )}
 
@@ -395,10 +406,15 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // サーバーサイドでGemini回答を取得
     const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
 
+    // サーバーサイドでGemini参考回答を取得
+    const geminiReferenceAnswer = await getGeminiReferenceAnswerServer(quiz, style, locale);
+
     // サーバーサイドで回答評価
     let feedbackData;
     if (userAnswer) {
       feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      // 参考回答を追加
+      feedbackData.gemini_reference_answer = geminiReferenceAnswer;
     } else {
       // 評価結果のみ渡す（フィードバック部分だけを含める）
       const accuracyScore = Math.floor(score / 2);
@@ -417,7 +433,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
         overall_comment: score >= 80 ?
           (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
           (locale === 'ja' ? "良い回答です。" : "Good answer."),
-        gemini_answer: geminiAnswer
+        gemini_answer: geminiAnswer,
+        gemini_reference_answer: geminiReferenceAnswer
       };
     }
 
