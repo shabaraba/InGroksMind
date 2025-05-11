@@ -489,19 +489,21 @@ export const getStaticProps: GetStaticProps<ResultPageProps, ResultPageParams> =
     const ogImageUrl = getStaticOgImageUrl(locale, host);
     console.log('Using static OG image for all pages');
 
-    // 結果ページURL生成
+    // 結果ページURL生成 (静的生成時はクエリパラメータなし)
     const resultUrl = generateResultUrl(
-      id, host, userAnswer, locale,
-      context.query.quizUserId as string,
-      context.query.replyUserId as string
+      id, host, userAnswer, locale
     );
 
     // シェアテキスト生成
     const shareText = generateShareText(quiz, style, score, locale, resultUrl);
 
-    // 静的生成ではリファラーを取得できないため、デフォルト値を設定
+    // 静的生成ではリファラーやクエリパラメータが取得できないため、デフォルト値を設定
     // クライアントサイドでURLパラメータから判断する前提
     const isSharedView = false;
+
+    // 静的生成時のリファラーやクエリパラメータのモック
+    // 後続処理でのエラーを防止するためのダミー値
+    const isDirect = false;
 
     return {
       props: {
