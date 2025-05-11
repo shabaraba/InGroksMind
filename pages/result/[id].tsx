@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
-import { GetServerSideProps, NextPage } from 'next';
+import { GetStaticProps, GetStaticPaths, NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -57,10 +57,22 @@ const ResultPage: NextPage<ResultPageProps> = ({
   const { isJapanese, setLanguage } = useContext(LanguageContext);
   const [t, setT] = useState(getTranslationForLocale(locale));
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [clientSideSharedView, setClientSideSharedView] = useState(isSharedView);
 
-  // URLからのクエリパラメータ
+  // URLからのクエリパラメータと静的生成との橋渡し
   const quizUserId = router.query.quizUserId ? parseInt(router.query.quizUserId as string, 10) : 0;
   const replyUserId = router.query.replyUserId ? parseInt(router.query.replyUserId as string, 10) : 0;
+
+  // クライアントサイドでのシェア状態判定
+  useEffect(() => {
+    if (router.isReady) {
+      const isDirect = router.query.direct === '1';
+      // URLパラメータから判断
+      if (router.query.shared === '1' && !isDirect) {
+        setClientSideSharedView(true);
+      }
+    }
+  }, [router.isReady, router.query]);
 
   // クイズとスタイルの情報を取得
   const quiz = quizData.find(q => q.id === quizId) || quizData[0];
@@ -205,7 +217,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
       <main className="container mx-auto py-8 px-4">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-white mb-6">
-            {isSharedView ? t.sharedResultView : t.resultTitle}
+            {clientSideSharedView ? t.sharedResultView : t.resultTitle}
           </h2>
 
           <div className="bg-twitter-darker rounded-lg border border-gray-700 overflow-hidden mb-8">
@@ -278,17 +290,20 @@ const ResultPage: NextPage<ResultPageProps> = ({
               />
             )}
 
-            {/* デバッグメッセージ（開発用のみ） */}
-            {process.env.NODE_ENV === 'development' && !feedbackData.gemini_answer && (
-              <div className="p-4 bg-red-100 text-red-800 border border-red-200 rounded-md mt-2 mb-2">
-                <p>Debug: Gemini回答が取得できませんでした。</p>
+            {/* 静的生成時の注意メッセージ（本番環境でも表示） */}
+            {!feedbackData.gemini_answer && (
+              <div className="p-4 bg-blue-100 text-blue-800 border border-blue-200 rounded-md mt-2 mb-2">
+                <p>{isJapanese
+                  ? "注: 静的サイトではGemini APIが利用できません。実際のAPIレスポンスを表示するには、クラウド環境で実行する必要があります。"
+                  : "Note: Gemini API is not available in static site exports. To see actual API responses, the app needs to be run in a cloud environment."}
+                </p>
               </div>
             )}
           </div>
 
           {/* シェアボタン */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mt-8">
-            {!isSharedView && (
+            {!clientSideSharedView && (
               <button
                 onClick={handleShare}
                 className="btn-primary flex items-center justify-center"
@@ -299,14 +314,14 @@ const ResultPage: NextPage<ResultPageProps> = ({
 
             <button
               onClick={() => router.push('/?lang=' + (isJapanese ? 'ja' : 'en'))}
-              className={isSharedView ? "btn-primary" : "btn-secondary"}
+              className={clientSideSharedView ? "btn-primary" : "btn-secondary"}
             >
-              {isSharedView ? t.tryGrokYourself : t.newQuestion}
+              {clientSideSharedView ? t.tryGrokYourself : t.newQuestion}
             </button>
           </div>
 
           {/* 結果ページの警告 */}
-          {isSharedView && (
+          {clientSideSharedView && (
             <div className="mt-10 p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg text-sm text-amber-500">
               <p>{t.resultDisclaimer}</p>
             </div>
@@ -329,34 +344,36 @@ const ResultPage: NextPage<ResultPageProps> = ({
   );
 };
 
-// サーバーサイドのデータ取得
-export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
-  // 言語パラメータ取得（リダイレクト用）
-  const langParam = context.query.lang as string;
-  const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
-  const langQuery = locale ? `?lang=${locale}` : '';
+// 静的ページ生成のためのパス取得
+export const getStaticPaths: GetStaticPaths = async () => {
+  // 動的なパスは事前に生成せず、アクセス時に生成（falllback: true）
+  return {
+    paths: [],
+    fallback: 'blocking'
+  };
+};
 
+// 静的ページ生成のためのデータ取得
+export const getStaticProps: GetStaticProps<ResultPageProps, ResultPageParams> = async (context) => {
   // IDを取得
   const { id } = context.params || {};
   if (!id) {
     // 存在しないIDの場合はホームにリダイレクト
     return {
       redirect: {
-        destination: `/${langQuery}`,
+        destination: '/',
         permanent: false,
       },
     };
   }
 
-  // 圧縮されたクエリパラメータがあれば展開
-  const compressedData = context.query.c as string;
-  if (compressedData) {
-    const params = expandUrlParams(compressedData);
-    params.forEach((value, key) => { context.query[key] = value; });
-  }
+  // 静的生成時はクエリパラメータが利用できないため、
+  // クライアントサイドでURLパラメータを処理することを前提とする
+  const locale = 'ja';  // デフォルト言語
+  const langQuery = '';
 
-  // ユーザーの回答を取得
-  const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
+  // ユーザーの回答（静的ビルド時はデフォルト値）
+  const userAnswer = "この質問に対する私の回答です...";
 
   try {
     // エラーフラグ - 問題が発生したかを追跡
@@ -389,8 +406,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
       };
     }
 
-    // ホスト名取得
-    const host = context.req.headers.host || 'localhost:3000';
+    // 静的生成のためにハードコードされたホスト名を使用
+    const host = 'in-groks-mind.shaba.dev';
     
     // 単純なAPIエンドポイントを使用してOG画像URLを生成
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
@@ -482,12 +499,9 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // シェアテキスト生成
     const shareText = generateShareText(quiz, style, score, locale, resultUrl);
 
-    // シェアからの訪問判定
-    const referer = context.req.headers.referer || '';
-    const host_parts = host.split(':')[0];
-    const isDirect = context.query.direct === '1';
-    const isFromSameOrigin = referer.includes(host_parts);
-    const isSharedView = !isDirect && !isFromSameOrigin;
+    // 静的生成ではリファラーを取得できないため、デフォルト値を設定
+    // クライアントサイドでURLパラメータから判断する前提
+    const isSharedView = false;
 
     return {
       props: {
@@ -505,11 +519,11 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
       }
     };
   } catch (error) {
-    console.error('Error in getServerSideProps:', error);
+    console.error('Error in getStaticProps:', error);
     // エラー発生時もホームにリダイレクト
     return {
       redirect: {
-        destination: `/${langQuery}`,
+        destination: '/',
         permanent: false,
       },
     };
