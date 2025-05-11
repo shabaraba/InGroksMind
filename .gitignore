@@ -28,9 +28,11 @@ yarn-debug.log*
 yarn-error.log*
 **/.claude/settings.local.json
 
-# Local Netlify folder except for functions
-.netlify/*
-!.netlify/functions/
+# Cloudflare Workers 関連
+.wrangler/
+dist/
+worker/
+.dev.vars
 
 # temporary test images
 test-og-image.png

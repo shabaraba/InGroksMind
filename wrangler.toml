@@ -1,0 +1,23 @@
+name = "in-groks-mind"
+main = "./.cloudflare/worker.js"
+compatibility_date = "2023-05-18"
+
+# カスタムドメイン設定
+routes = [
+  { pattern = "in-groks-mind.shaba.dev", custom_domain = true }
+]
+
+[site]
+bucket = "./out"
+entry-point = "./.cloudflare/worker.js"
+
+[build]
+command = "npm run build"
+watch_dir = "./pages"
+output_dir = "./out"
+
+[env.production]
+workers_dev = false
+
+[env.staging]
+workers_dev = true
