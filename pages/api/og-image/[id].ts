@@ -410,7 +410,7 @@ export default async function handler(
     ctx.fillText(`Generated: ${now}`, 50, height - 15);
 
     // PNGとして返す
-    const buffer = await canvas.toBuffer('png');
+    const buffer = canvas.toBuffer('image/png');
     
     // レスポンスヘッダーを設定
     res.setHeader('Content-Type', 'image/png');
