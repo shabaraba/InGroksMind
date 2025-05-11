@@ -1,6 +1,6 @@
 [build]
   # ビルドコマンド
-  command = "npm run build"
+  command = "chmod +x netlify/canvas-setup.sh && netlify/canvas-setup.sh && npm run build"
   # 公開ディレクトリ
   publish = ".next"
   # 関数ディレクトリ
@@ -12,6 +12,9 @@
   NEXT_TELEMETRY_DISABLED = "1"
   # Node.jsバージョン
   NODE_VERSION = "18"
+  # node-canvas用の設定
+  NETLIFY_USE_YARN = "true"
+  LD_LIBRARY_PATH = "/usr/local/lib"
 
 # PRプレビュー設定
 [context.deploy-preview]
@@ -21,6 +24,8 @@
 # プラグイン設定
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Netlifyでのnode-canvas依存関係はsetupスクリプトで処理
 
 # リダイレクト設定（Next.jsが自動的に処理するため少なくて済む）
 [[redirects]]
