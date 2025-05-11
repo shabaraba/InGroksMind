@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
-import { GetServerSideProps, NextPage } from 'next';
+import { GetStaticProps, GetStaticPaths, NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -8,7 +8,7 @@ import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
 import { generateResultUrl, generateShareText } from '../../utils/imageUtils';
-import { generateOgImageUrl } from '../../utils/simpleImageUtils';
+import { generateOgImageUrl, getStaticOgImageUrl } from '../../utils/simpleImageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
@@ -57,10 +57,22 @@ const ResultPage: NextPage<ResultPageProps> = ({
   const { isJapanese, setLanguage } = useContext(LanguageContext);
   const [t, setT] = useState(getTranslationForLocale(locale));
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [clientSideSharedView, setClientSideSharedView] = useState(isSharedView);
 
-  // URLからのクエリパラメータ
+  // URLからのクエリパラメータと静的生成との橋渡し
   const quizUserId = router.query.quizUserId ? parseInt(router.query.quizUserId as string, 10) : 0;
   const replyUserId = router.query.replyUserId ? parseInt(router.query.replyUserId as string, 10) : 0;
+
+  // クライアントサイドでのシェア状態判定
+  useEffect(() => {
+    if (router.isReady) {
+      const isDirect = router.query.direct === '1';
+      // URLパラメータから判断
+      if (router.query.shared === '1' && !isDirect) {
+        setClientSideSharedView(true);
+      }
+    }
+  }, [router.isReady, router.query]);
 
   // クイズとスタイルの情報を取得
   const quiz = quizData.find(q => q.id === quizId) || quizData[0];
@@ -205,7 +217,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
       <main className="container mx-auto py-8 px-4">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-white mb-6">
-            {isSharedView ? t.sharedResultView : t.resultTitle}
+            {clientSideSharedView ? t.sharedResultView : t.resultTitle}
           </h2>
 
           <div className="bg-twitter-darker rounded-lg border border-gray-700 overflow-hidden mb-8">
@@ -278,17 +290,20 @@ const ResultPage: NextPage<ResultPageProps> = ({
               />
             )}
 
-            {/* デバッグメッセージ（開発用のみ） */}
-            {process.env.NODE_ENV === 'development' && !feedbackData.gemini_answer && (
-              <div className="p-4 bg-red-100 text-red-800 border border-red-200 rounded-md mt-2 mb-2">
-                <p>Debug: Gemini回答が取得できませんでした。</p>
+            {/* 静的生成時の注意メッセージ（本番環境でも表示） */}
+            {!feedbackData.gemini_answer && (
+              <div className="p-4 bg-blue-100 text-blue-800 border border-blue-200 rounded-md mt-2 mb-2">
+                <p>{isJapanese
+                  ? "注: 静的サイトではGemini APIが利用できません。実際のAPIレスポンスを表示するには、クラウド環境で実行する必要があります。"
+                  : "Note: Gemini API is not available in static site exports. To see actual API responses, the app needs to be run in a cloud environment."}
+                </p>
               </div>
             )}
           </div>
 
           {/* シェアボタン */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mt-8">
-            {!isSharedView && (
+            {!clientSideSharedView && (
               <button
                 onClick={handleShare}
                 className="btn-primary flex items-center justify-center"
@@ -299,14 +314,14 @@ const ResultPage: NextPage<ResultPageProps> = ({
 
             <button
               onClick={() => router.push('/?lang=' + (isJapanese ? 'ja' : 'en'))}
-              className={isSharedView ? "btn-primary" : "btn-secondary"}
+              className={clientSideSharedView ? "btn-primary" : "btn-secondary"}
             >
-              {isSharedView ? t.tryGrokYourself : t.newQuestion}
+              {clientSideSharedView ? t.tryGrokYourself : t.newQuestion}
             </button>
           </div>
 
           {/* 結果ページの警告 */}
-          {isSharedView && (
+          {clientSideSharedView && (
             <div className="mt-10 p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg text-sm text-amber-500">
               <p>{t.resultDisclaimer}</p>
             </div>
@@ -329,36 +344,41 @@ const ResultPage: NextPage<ResultPageProps> = ({
   );
 };
 
-// サーバーサイドのデータ取得
-export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
-  // 言語パラメータ取得（リダイレクト用）
-  const langParam = context.query.lang as string;
-  const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
-  const langQuery = locale ? `?lang=${locale}` : '';
+// 静的ページ生成のためのパス取得
+export const getStaticPaths: GetStaticPaths = async () => {
+  // 動的なパスは事前に生成せず、アクセス時に生成（falllback: true）
+  return {
+    paths: [],
+    fallback: 'blocking'
+  };
+};
 
+// 静的ページ生成のためのデータ取得
+export const getStaticProps: GetStaticProps<ResultPageProps, ResultPageParams> = async (context) => {
   // IDを取得
   const { id } = context.params || {};
   if (!id) {
     // 存在しないIDの場合はホームにリダイレクト
     return {
       redirect: {
-        destination: `/${langQuery}`,
+        destination: '/',
         permanent: false,
       },
     };
   }
 
-  // 圧縮されたクエリパラメータがあれば展開
-  const compressedData = context.query.c as string;
-  if (compressedData) {
-    const params = expandUrlParams(compressedData);
-    params.forEach((value, key) => { context.query[key] = value; });
-  }
+  // 静的生成時はクエリパラメータが利用できないため、
+  // クライアントサイドでURLパラメータを処理することを前提とする
+  const locale = 'ja';  // デフォルト言語
+  const langQuery = '';
 
-  // ユーザーの回答を取得
-  const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
+  // ユーザーの回答（静的ビルド時はデフォルト値）
+  const userAnswer = "この質問に対する私の回答です...";
 
   try {
+    // エラーフラグ - 問題が発生したかを追跡
+    let hasErrors = false;
+
     // IDからクイズID, スタイルID, スコアを抽出
     const resultData = decodeResultId(id);
     if (!resultData) {
@@ -386,61 +406,104 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
       };
     }
 
-    // ホスト名取得
-    const host = context.req.headers.host || 'localhost:3000';
+    // 静的生成のためにハードコードされたホスト名を使用
+    const host = 'in-groks-mind.shaba.dev';
     
     // 単純なAPIエンドポイントを使用してOG画像URLを生成
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
 
     // サーバーサイドでGemini回答を取得
-    const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    let geminiAnswer = null;
+    try {
+      geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    } catch (apiError) {
+      console.error('Error calling Gemini API:', apiError);
+      hasErrors = true; // エラーフラグを設定
+
+      // エラー時のフォールバック回答
+      geminiAnswer = {
+        content: locale === 'ja'
+          ? `申し訳ありません。現在、APIサービスに一時的な問題が発生しています。${quiz.content_ja}についての回答は後ほどお試しください。`
+          : `Sorry, there is a temporary issue with the API service. Please try again later for an answer about ${quiz.content_en}.`,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      };
+    }
 
     // サーバーサイドで回答評価
     let feedbackData;
-    if (userAnswer) {
-      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
-    } else {
-      // 評価結果のみ渡す（フィードバック部分だけを含める）
+    try {
+      if (userAnswer && !hasErrors) {
+        feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      } else {
+        // 評価結果のみ渡す（フィードバック部分だけを含める）
+        // エラーが発生した場合や回答がない場合はここに入る
+        const accuracyScore = Math.floor(score / 2);
+        const styleScore = score - accuracyScore;
+
+        feedbackData = {
+          accuracy_score: accuracyScore,
+          accuracy_comment: hasErrors
+            ? (locale === 'ja' ? "システムエラーのため正確な評価ができません。" : "Cannot provide accurate evaluation due to system error.")
+            : (accuracyScore >= 40
+                ? (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.")
+                : (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average.")),
+          style_score: styleScore,
+          style_comment: hasErrors
+            ? (locale === 'ja' ? "システムエラーのため口調の評価ができません。" : "Cannot evaluate tone due to system error.")
+            : (styleScore >= 40
+                ? (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`)
+                : (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`)),
+          total_score: score,
+          overall_comment: hasErrors
+            ? (locale === 'ja' ? "申し訳ありませんが、現在技術的な問題が発生しています。" : "Sorry, we're experiencing technical issues at the moment.")
+            : (score >= 80
+                ? (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!")
+                : (locale === 'ja' ? "良い回答です。" : "Good answer.")),
+          gemini_answer: geminiAnswer
+        };
+      }
+    } catch (evalError) {
+      console.error('Error in answer evaluation:', evalError);
+      hasErrors = true;
+
+      // 評価エラー時のフォールバック
       const accuracyScore = Math.floor(score / 2);
       const styleScore = score - accuracyScore;
 
       feedbackData = {
         accuracy_score: accuracyScore,
-        accuracy_comment: accuracyScore >= 40 ?
-          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") :
-          (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average."),
+        accuracy_comment: locale === 'ja' ? "評価サービスに問題が発生しています。" : "There is an issue with the evaluation service.",
         style_score: styleScore,
-        style_comment: styleScore >= 40 ?
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) :
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`),
+        style_comment: locale === 'ja' ? "口調評価は現在利用できません。" : "Style evaluation is currently unavailable.",
         total_score: score,
-        overall_comment: score >= 80 ?
-          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
-          (locale === 'ja' ? "良い回答です。" : "Good answer."),
+        overall_comment: locale === 'ja' ? "システム障害のため正確な評価ができません。" : "Accurate evaluation is not possible due to system issues.",
         gemini_answer: geminiAnswer
       };
     }
 
     // 実際のスコアをOG画像のURL生成に使用
     const actualScore = feedbackData.total_score;
-    const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
 
-    // 結果ページURL生成
+    // OG画像URLの生成 - すべてのページで統一されたOG画像を使用
+    // どの環境でも常に同じ静的OG画像を使用
+    const ogImageUrl = getStaticOgImageUrl(locale, host);
+    console.log('Using static OG image for all pages');
+
+    // 結果ページURL生成 (静的生成時はクエリパラメータなし)
     const resultUrl = generateResultUrl(
-      id, host, userAnswer, locale,
-      context.query.quizUserId as string,
-      context.query.replyUserId as string
+      id, host, userAnswer, locale
     );
 
     // シェアテキスト生成
     const shareText = generateShareText(quiz, style, score, locale, resultUrl);
 
-    // シェアからの訪問判定
-    const referer = context.req.headers.referer || '';
-    const host_parts = host.split(':')[0];
-    const isDirect = context.query.direct === '1';
-    const isFromSameOrigin = referer.includes(host_parts);
-    const isSharedView = !isDirect && !isFromSameOrigin;
+    // 静的生成ではリファラーやクエリパラメータが取得できないため、デフォルト値を設定
+    // クライアントサイドでURLパラメータから判断する前提
+    const isSharedView = false;
+
+    // 静的生成時のリファラーやクエリパラメータのモック
+    // 後続処理でのエラーを防止するためのダミー値
+    const isDirect = false;
 
     return {
       props: {
@@ -458,11 +521,11 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
       }
     };
   } catch (error) {
-    console.error('Error in getServerSideProps:', error);
+    console.error('Error in getStaticProps:', error);
     // エラー発生時もホームにリダイレクト
     return {
       redirect: {
-        destination: `/${langQuery}`,
+        destination: '/',
         permanent: false,
       },
     };

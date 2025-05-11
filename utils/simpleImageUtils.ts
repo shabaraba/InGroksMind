@@ -1,4 +1,4 @@
-// シンプルなOG画像ユーティリティ（Netlify Functionsに依存しない実装）
+// シンプルなOG画像ユーティリティ（すべてのページで統一されたOG画像を使用）
 
 import { QuizItem } from '../data/quizData';
 import { StyleVariation } from '../data/styleVariations';
@@ -12,15 +12,18 @@ export const generateOgImageUrl = (
   host: string = 'localhost:3000'
 ): string => {
   const protocol = host.includes('localhost') ? 'http' : 'https';
-  const language = locale === 'ja' ? 'ja' : 'en';
-  
-  try {
-    // OG画像に関する問題を解決するため、動的APIではなく静的画像ファイルを使用
-    // キャッシュを無効化するためのタイムスタンプパラメータを追加
-    const timestamp = new Date().getTime();
-    return `${protocol}://${host}/og-image-home-new.png?t=${timestamp}`;
-  } catch (error) {
-    // エラーが発生した場合は最もシンプルな静的画像ファイルを使用
-    return `${protocol}://${host}/og-image-static.png`;
-  }
+
+  // すべてのページでホームページと同じOG画像を使用
+  return `${protocol}://${host}/og-image-home.png`;
+};
+
+// 静的フォールバックOG画像のURLを生成する
+export const getStaticOgImageUrl = (
+  locale: string = 'ja',
+  host: string = 'localhost:3000'
+): string => {
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+
+  // ホームページと同じOG画像を使用
+  return `${protocol}://${host}/og-image-home.png`;
 };

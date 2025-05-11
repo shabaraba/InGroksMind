@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-// SkiaCanvas ライブラリを使用
-import { Canvas } from 'skia-canvas';
+import { createCanvas } from 'canvas'; // node-canvasを使用（skia-canvasの代わり）
 import { quizData } from '../../../data/quizData';
 import { styleVariations } from '../../../data/styleVariations';
+import { decodeResultId } from '../../../utils/geminiService';
 
 /**
  * 動的OGP画像生成API
@@ -25,17 +25,38 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing ID parameter' });
     }
 
-    // IDからパラメータを抽出
-    // 形式: quizId-styleId-score-lang
-    const parts = id.split('-');
-    if (parts.length < 3) {
-      return res.status(400).json({ error: 'Invalid ID format' });
+    // IDパラメータを解析
+    // デコードされたIDかクエリパラメータかを確認
+    // 形式: quizId-styleId-score-lang または resultId
+    let quizId: number;
+    let styleId: number;
+    let score: number;
+    let language: string = 'en';
+
+    if (id.includes('-')) {
+      // 形式: quizId-styleId-score-lang
+      const parts = id.split('-');
+      if (parts.length < 3) {
+        return res.status(400).json({ error: 'Invalid ID format' });
+      }
+
+      quizId = parseInt(parts[0], 10);
+      styleId = parseInt(parts[1], 10);
+      score = parseInt(parts[2], 10);
+      language = parts[3] || 'en'; // デフォルト言語は英語
+    } else {
+      // 暗号化されたresultIdの場合はデコードする
+      const resultData = decodeResultId(id);
+      if (!resultData) {
+        return res.status(400).json({ error: 'Invalid result ID' });
+      }
+
+      quizId = resultData.quizId;
+      styleId = resultData.styleId;
+      score = resultData.score;
+      language = req.query.lang ? String(req.query.lang) : 'en';
     }
 
-    const quizId = parseInt(parts[0], 10);
-    const styleId = parseInt(parts[1], 10);
-    const score = parseInt(parts[2], 10);
-    const language = parts[3] || 'en'; // デフォルト言語は英語
     const isJapanese = language === 'ja';
 
     // クイズとスタイルのデータを取得
@@ -47,13 +68,11 @@ export default async function handler(
     const styleName = isJapanese ? style.name_ja : style.name_en;
     const title = isJapanese ? 'Grokの気持ち' : "In Grok's Mind";
 
-    // Canvas ライブラリを使用して画像を生成
-    try {
-      // SkiaCanvas を使用してキャンバスを作成
-      const width = 1200;
-      const height = 630;
-      const canvas = new Canvas(width, height);
-      const ctx = canvas.getContext('2d');
+    // node-canvasを使用してキャンバスを作成
+    const width = 1200;
+    const height = 630;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
 
     // 宇宙風の背景
     // ディープスペースのグラデーション背景
@@ -391,24 +410,20 @@ export default async function handler(
     ctx.fillText(`Generated: ${now}`, 50, height - 15);
 
     // PNGとして返す
-    const buffer = await canvas.toBuffer('png');
+    const buffer = canvas.toBuffer('image/png');
     
     // レスポンスヘッダーを設定
-      res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1年間キャッシュ
-      res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'image/png');
+    // キャッシュコントロール - 10分間のキャッシュ（ソーシャルメディアは画像キャッシュをリセットする場合がある）
+    res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=600');
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
-      // 画像を返す
-      res.status(200).send(buffer);
-    } catch (canvasError) {
-      console.error('Canvas error:', canvasError);
-      // Canvas処理でエラーが発生した場合は静的画像APIエンドポイントにリダイレクト
-      res.redirect(302, '/api/og-image-static');
-    }
+    // 画像を返す
+    res.status(200).send(buffer);
   } catch (error) {
     console.error('Error generating OG image:', error);
 
-    // エラー発生時はAPIのデフォルト画像生成エンドポイントにリダイレクト
+    // エラー発生時はデフォルト画像にリダイレクト
     res.redirect(302, '/api/og-image/default');
   }
 }

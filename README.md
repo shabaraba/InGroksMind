@@ -81,8 +81,17 @@ NEXT_PUBLIC_USE_GEMINI_API=true
 
 1. ユーザーが回答提出時にスコアを含む一意のID（`quizId-styleId-score-timestamp`形式）を生成
 2. 結果ページ（`/result/[id]`）でそのIDを解析し、Server-Side Rendering中にOG画像URLを生成
-3. `/api/og-image/[id]`エンドポイントが、IDに基づいてCanvas APIで動的にOG画像を生成・返却
+3. `/api/og-image/[id]`エンドポイントが、IDに基づいてNode Canvas APIで動的にOG画像を生成・返却
 4. SNSでシェアされたとき、常に新しいOG画像が生成される
+
+### Canvas実装について
+
+当初は`skia-canvas`ライブラリを使用していましたが、Netlifyデプロイ環境でGLIBC_2.28依存関係の問題が発生したため、`node-canvas`ライブラリに移行しました。これにより以下の変更が行われました：
+
+- `skia-canvas`の代わりに`node-canvas`パッケージを使用
+- `new Canvas()`の代わりに`createCanvas()`メソッドを使用
+- `canvas.toBuffer('png')`の代わりに`canvas.toBuffer('image/png')`を使用（MIME型の指定が必要）
+- `netlify.toml`から特別なCanvas依存関係の環境変数を削除
 
 ## レスポンシブ対応
 

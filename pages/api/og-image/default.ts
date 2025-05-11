@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Canvas } from 'skia-canvas';
+import { createCanvas } from 'canvas'; // node-canvasを使用
 
 /**
  * デフォルトOG画像生成API
@@ -22,10 +22,10 @@ export default async function handler(
     const title = isJapanese ? 'Grokの気持ち' : "In Grok's Mind";
     const subtitle = isJapanese ? 'Grokになりきって答えてみよう！' : "Answer as if you were Grok!";
 
-    // SkiaCanvas を使用してキャンバスを作成
+    // node-canvasを使用してキャンバスを作成
     const width = 1200;
     const height = 630;
-    const canvas = new Canvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
     // 背景色
@@ -60,7 +60,7 @@ export default async function handler(
     ctx.fillText(`Generated: ${now}`, 50, height - 50);
 
     // PNGとして返す
-    const buffer = await canvas.toBuffer('png');
+    const buffer = canvas.toBuffer('image/png');
     
     // レスポンスヘッダーを設定
     res.setHeader('Content-Type', 'image/png');

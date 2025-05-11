@@ -1,6 +1,6 @@
 [build]
   # ビルドコマンド
-  command = "npm run build"
+  command = "chmod +x netlify/canvas-setup.sh && netlify/canvas-setup.sh && npm run build"
   # 公開ディレクトリ
   publish = ".next"
   # 関数ディレクトリ
@@ -12,6 +12,9 @@
   NEXT_TELEMETRY_DISABLED = "1"
   # Node.jsバージョン
   NODE_VERSION = "18"
+  # node-canvas用の設定
+  NETLIFY_USE_YARN = "true"
+  LD_LIBRARY_PATH = "/usr/local/lib"
 
 # PRプレビュー設定
 [context.deploy-preview]
@@ -22,11 +25,33 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# リダイレクト設定（Next.jsが自動的に処理するため少なくて済む）
+# Netlifyでのnode-canvas依存関係はsetupスクリプトで処理
+
+# Netlify関数のビルド設定
+[functions]
+  # 関数ビルド時の依存関係のインストール方法
+  node_bundler = "esbuild"
+  # 関数に含めるパッケージの指定
+  external_node_modules = ["canvas"]
+
+# リダイレクト設定 - クライアントサイドルーティング用
+[[redirects]]
+  from = "/result/:id"
+  to = "/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/result/*"
+  to = "/index.html"
+  status = 200
+  force = true
+
+# デフォルトのSPAリダイレクト - 存在しないページは全てホームにリダイレクト
 [[redirects]]
   from = "/*"
-  to = "/404"
-  status = 404
+  to = "/index.html"
+  status = 200
 
 # ヘッダー設定
 [[headers]]
@@ -36,7 +61,15 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self' *.netlify.app; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' *.googleapis.com; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self' *.netlify.app; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *.googleusercontent.com; font-src 'self' data:; connect-src 'self' *.googleapis.com; frame-ancestors 'none';"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# 動的ルートのヘッダー設定
+[[headers]]
+  for = "/result/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Robots-Tag = "noindex"
 
 # API画像ルートの特殊設定
 [[headers]]

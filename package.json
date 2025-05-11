@@ -2,12 +2,18 @@
   "name": "begrok-next",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/ensure-directories.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-og-home": "node scripts/generate-home-og.js"
+    "generate-og-home": "node scripts/generate-home-og.js",
+    "publish": "wrangler deploy",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -15,11 +21,11 @@
     "crypto-js": "^4.2.0",
     "next": "^14.1.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "skia-canvas": "^2.0.2"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@netlify/functions": "^3.1.8",
+    "@cloudflare/kv-asset-handler": "^0.3.0",
+    "@cloudflare/wrangler": "^3.19.0",
     "@types/crypto-js": "^4.2.1",
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",

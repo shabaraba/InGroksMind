@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>In Grok's Mind - リダイレクト</title>
+  <script type="text/javascript">
+    // SPA向けの404リダイレクト処理
+    // GitHub Pagesでクライアントサイドルーティングをサポートするためのスクリプト
+    (function() {
+      // 現在のURLを取得
+      const path = window.location.pathname;
+      const search = window.location.search;
+      
+      // ルートに戻してクライアントサイドルーティングに任せる
+      window.location.href = '/?redirect=' + encodeURIComponent(path + search);
+    })();
+  </script>
+</head>
+<body>
+  <h1>リダイレクト中...</h1>
+  <p>自動的にリダイレクトされない場合は、<a href="/">ホームページ</a>をクリックしてください。</p>
+</body>
+</html>
