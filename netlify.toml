@@ -34,17 +34,24 @@
   # 関数に含めるパッケージの指定
   external_node_modules = ["canvas"]
 
-# リダイレクト設定
+# リダイレクト設定 - クライアントサイドルーティング用
 [[redirects]]
-  from = "/result/*"
-  to = "/result/[id].html"
+  from = "/result/:id"
+  to = "/index.html"
   status = 200
   force = true
 
 [[redirects]]
+  from = "/result/*"
+  to = "/index.html"
+  status = 200
+  force = true
+
+# デフォルトのSPAリダイレクト - 存在しないページは全てホームにリダイレクト
+[[redirects]]
   from = "/*"
-  to = "/404"
-  status = 404
+  to = "/index.html"
+  status = 200
 
 # ヘッダー設定
 [[headers]]

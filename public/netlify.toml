@@ -1,0 +1,8 @@
+# publicディレクトリ内のNetlify設定ファイル（buildプロセス後に適用される）
+# このファイルは生成されたサイトの/netlify.tomlとしてデプロイされる
+
+# デフォルトのSPAリダイレクト - クライアントサイドルーティング用
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
