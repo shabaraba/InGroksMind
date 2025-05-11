@@ -359,6 +359,9 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
   const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
 
   try {
+    // エラーフラグ - 問題が発生したかを追跡
+    let hasErrors = false;
+
     // IDからクイズID, スタイルID, スコアを抽出
     const resultData = decodeResultId(id);
     if (!resultData) {
@@ -393,30 +396,70 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
 
     // サーバーサイドでGemini回答を取得
-    const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    let geminiAnswer = null;
+    try {
+      geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    } catch (apiError) {
+      console.error('Error calling Gemini API:', apiError);
+      hasErrors = true; // エラーフラグを設定
+
+      // エラー時のフォールバック回答
+      geminiAnswer = {
+        content: locale === 'ja'
+          ? `申し訳ありません。現在、APIサービスに一時的な問題が発生しています。${quiz.content_ja}についての回答は後ほどお試しください。`
+          : `Sorry, there is a temporary issue with the API service. Please try again later for an answer about ${quiz.content_en}.`,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      };
+    }
 
     // サーバーサイドで回答評価
     let feedbackData;
-    if (userAnswer) {
-      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
-    } else {
-      // 評価結果のみ渡す（フィードバック部分だけを含める）
+    try {
+      if (userAnswer && !hasErrors) {
+        feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      } else {
+        // 評価結果のみ渡す（フィードバック部分だけを含める）
+        // エラーが発生した場合や回答がない場合はここに入る
+        const accuracyScore = Math.floor(score / 2);
+        const styleScore = score - accuracyScore;
+
+        feedbackData = {
+          accuracy_score: accuracyScore,
+          accuracy_comment: hasErrors
+            ? (locale === 'ja' ? "システムエラーのため正確な評価ができません。" : "Cannot provide accurate evaluation due to system error.")
+            : (accuracyScore >= 40
+                ? (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.")
+                : (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average.")),
+          style_score: styleScore,
+          style_comment: hasErrors
+            ? (locale === 'ja' ? "システムエラーのため口調の評価ができません。" : "Cannot evaluate tone due to system error.")
+            : (styleScore >= 40
+                ? (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`)
+                : (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`)),
+          total_score: score,
+          overall_comment: hasErrors
+            ? (locale === 'ja' ? "申し訳ありませんが、現在技術的な問題が発生しています。" : "Sorry, we're experiencing technical issues at the moment.")
+            : (score >= 80
+                ? (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!")
+                : (locale === 'ja' ? "良い回答です。" : "Good answer.")),
+          gemini_answer: geminiAnswer
+        };
+      }
+    } catch (evalError) {
+      console.error('Error in answer evaluation:', evalError);
+      hasErrors = true;
+
+      // 評価エラー時のフォールバック
       const accuracyScore = Math.floor(score / 2);
       const styleScore = score - accuracyScore;
 
       feedbackData = {
         accuracy_score: accuracyScore,
-        accuracy_comment: accuracyScore >= 40 ?
-          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") :
-          (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average."),
+        accuracy_comment: locale === 'ja' ? "評価サービスに問題が発生しています。" : "There is an issue with the evaluation service.",
         style_score: styleScore,
-        style_comment: styleScore >= 40 ?
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) :
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`),
+        style_comment: locale === 'ja' ? "口調評価は現在利用できません。" : "Style evaluation is currently unavailable.",
         total_score: score,
-        overall_comment: score >= 80 ?
-          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
-          (locale === 'ja' ? "良い回答です。" : "Good answer."),
+        overall_comment: locale === 'ja' ? "システム障害のため正確な評価ができません。" : "Accurate evaluation is not possible due to system issues.",
         gemini_answer: geminiAnswer
       };
     }
@@ -424,20 +467,22 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // 実際のスコアをOG画像のURL生成に使用
     const actualScore = feedbackData.total_score;
 
-    // Netlify環境でのデプロイで内部エラーが発生する場合は静的フォールバックを使用
+    // OG画像URLの生成
     let ogImageUrl;
-    try {
-      // まずは動的OG画像を試みる
-      ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
 
-      // エラー発生を検出するために簡単なテスト（本番環境のみ）
-      if (process.env.NODE_ENV === 'production' && process.env.NETLIFY === 'true') {
-        // Netlify環境では静的フォールバックを優先
+    // エラーが発生している場合、または静的フォールバックが必要な場合
+    if (hasErrors || process.env.NETLIFY === 'true') {
+      // Netlify環境または他のエラーがある場合は常に静的フォールバックを使用
+      ogImageUrl = getStaticOgImageUrl(locale, host);
+      console.log('Using static OG image fallback due to Netlify environment or previous errors');
+    } else {
+      try {
+        // ローカル環境または他の環境では動的OG画像を試みる
+        ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
+      } catch (error) {
+        console.warn('Error generating dynamic OG image URL, using static fallback:', error);
         ogImageUrl = getStaticOgImageUrl(locale, host);
       }
-    } catch (error) {
-      console.warn('Error generating dynamic OG image URL, using static fallback:', error);
-      ogImageUrl = getStaticOgImageUrl(locale, host);
     }
 
     // 結果ページURL生成
