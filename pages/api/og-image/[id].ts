@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-// SkiaCanvas ライブラリを使用
-import { Canvas } from 'skia-canvas';
+import { createCanvas } from 'canvas'; // node-canvasを使用（skia-canvasの代わり）
 import { quizData } from '../../../data/quizData';
 import { styleVariations } from '../../../data/styleVariations';
 import { decodeResultId } from '../../../utils/geminiService';
@@ -69,10 +68,10 @@ export default async function handler(
     const styleName = isJapanese ? style.name_ja : style.name_en;
     const title = isJapanese ? 'Grokの気持ち' : "In Grok's Mind";
 
-    // キャンバスを作成
+    // node-canvasを使用してキャンバスを作成
     const width = 1200;
     const height = 630;
-    const canvas = new Canvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
     // 宇宙風の背景
