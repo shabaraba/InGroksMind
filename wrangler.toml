@@ -9,12 +9,10 @@ routes = [
 
 [site]
 bucket = "./out"
-entry-point = "./.cloudflare/worker.js"
 
 [build]
 command = "npm run build"
 watch_dir = "./pages"
-output_dir = "./out"
 
 [env.production]
 workers_dev = false
