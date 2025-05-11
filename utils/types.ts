@@ -9,12 +9,14 @@ export interface FeedbackData {
   total_score: number;
   overall_comment: string;
   gemini_answer?: GeminiAnswer | null; // Geminiの回答情報（オプショナル）、nullも許容
+  gemini_reference_answer?: GeminiAnswer | null; // Geminiの参考回答情報（オプショナル）、nullも許容
 }
 
 // Geminiの回答データ
 export interface GeminiAnswer {
   content: string; // 回答内容
   avatar_url?: string; // アバター画像URL（オプショナル）
+  is_reference?: boolean; // 参考回答かどうかのフラグ
 }
 
 // APIからの評価リクエスト
