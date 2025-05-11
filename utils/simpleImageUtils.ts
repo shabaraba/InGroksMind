@@ -20,4 +20,13 @@ export const generateOgImageUrl = (
 
   // 以下のようなエラーハンドリングはもはや不要
   // これによりコードが単純化され、ソーシャルメディアのクローラーにとって理解しやすくなる
+  try {
+    // OG画像に関する問題を解決するため、動的APIではなく静的画像ファイルを使用
+    // キャッシュを無効化するためのタイムスタンプパラメータを追加
+    const timestamp = new Date().getTime();
+    return `${protocol}://${host}/og-image-home-new.png?t=${timestamp}`;
+  } catch (error) {
+    // エラーが発生した場合は最もシンプルな静的画像ファイルを使用
+    return `${protocol}://${host}/og-image-static.png`;
+  }
 };
