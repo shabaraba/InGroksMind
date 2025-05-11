@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { Canvas } from 'skia-canvas';
+import { createCanvas } from 'canvas'; // node-canvasを使用（skia-canvasの代わり）
 import { quizData } from '../../../data/quizData';
 import { styleVariations } from '../../../data/styleVariations';
 
@@ -51,7 +51,7 @@ const handler: Handler = async (event, context) => {
     // Canvas設定
     const width = 1200;
     const height = 630;
-    const canvas = new Canvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
     // 画像生成 - 新デザイン（左右分割・スコア大きく表示）
@@ -329,7 +329,7 @@ const handler: Handler = async (event, context) => {
     ctx.globalAlpha = 1.0;
     
     // PNGとして書き出し
-    const buffer = await canvas.toBuffer('png');
+    const buffer = canvas.toBuffer('image/png');
     
     // Base64エンコード
     const base64Image = buffer.toString('base64');
