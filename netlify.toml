@@ -12,6 +12,9 @@
   NEXT_TELEMETRY_DISABLED = "1"
   # Node.jsバージョン
   NODE_VERSION = "18"
+  # Canvas依存関係のための環境変数
+  LD_LIBRARY_PATH = "/usr/lib64-nvidia"
+  LD_PRELOAD = ""
 
 # PRプレビュー設定
 [context.deploy-preview]
