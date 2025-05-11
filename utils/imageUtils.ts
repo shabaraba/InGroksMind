@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Canvas } from 'skia-canvas';
+import { createCanvas } from 'canvas'; // node-canvasを使用（skia-canvasの代わり）
 import { QuizItem } from '../data/quizData';
 import { StyleVariation } from '../data/styleVariations';
 import { getTranslationForLocale } from '../i18n/translations';
@@ -120,7 +120,7 @@ export const generateAndSaveOgImage = async (
     // 画像生成
     const width = 1200;
     const height = 630;
-    const canvas = new Canvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     const isJapanese = locale === 'ja';
 
@@ -465,7 +465,7 @@ export const generateAndSaveOgImage = async (
     ctx.fillText(`Generated: ${now}`, 50, height - 15);
 
     // 画像をファイルに保存
-    const buffer = await canvas.toBuffer('png');
+    const buffer = canvas.toBuffer('image/png');
     fs.writeFileSync(filePath, buffer);
 
     return filePath;
