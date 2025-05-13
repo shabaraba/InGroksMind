@@ -37,3 +37,7 @@ test-og-image.png
 
 # generated OG images
 /tmp/
+
+# Vercel
+.vercel
+.env
