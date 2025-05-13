@@ -194,21 +194,27 @@ const ResultPage: NextPage<ResultPageProps> = ({
             console.error('Error copying to clipboard:', clipboardError);
           }
           
+          // シェアURLを使って新しいシェアテキストを生成
+          const updatedShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en', result.shareUrl);
+          
           // Twitterでシェア（シェアURLを含める）
-          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(result.shareUrl)}`;
+          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(updatedShareText)}`;
           window.open(twitterShareUrl, '_blank');
           return;
         }
         
         // Redisが設定されていない場合や他のエラーの場合は従来のシェア方法を使用
         console.warn('Falling back to traditional sharing method:', result);
-        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        // URLなしのシェアテキストを生成（コンパクト版）
+        const fallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fallbackShareText)}`;
         window.open(twitterShareUrl, '_blank');
         
       } catch (apiError) {
         console.error('API error:', apiError);
         // APIエラーの場合は従来のシェア方法を使用（URLなし）
-        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        const fallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fallbackShareText)}`;
         window.open(twitterShareUrl, '_blank');
       }
     } catch (error) {
@@ -216,7 +222,8 @@ const ResultPage: NextPage<ResultPageProps> = ({
       
       // エラーが発生した場合はユーザーに通知し、従来のシェア方法を使用
       alert(isJapanese ? 'シェアの準備中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while preparing to share. Please try again.');
-      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+      const finalFallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(finalFallbackShareText)}`;
       window.open(twitterShareUrl, '_blank');
     }
   };
