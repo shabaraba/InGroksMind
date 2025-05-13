@@ -168,35 +168,54 @@ const ResultPage: NextPage<ResultPageProps> = ({
         timestamp: Date.now()
       };
       
-      // API経由でデータを保存し、シェアID/URLを取得
-      const response = await fetch('/api/save-result', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(resultData),
-      });
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save result');
+      try {
+        // API経由でデータを保存し、シェアID/URLを取得
+        const response = await fetch('/api/save-result', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(resultData),
+        });
+        
+        // レスポンスをJSONとして解析
+        const result = await response.json();
+        
+        if (result.success && result.shareUrl) {
+          // 正常に処理された場合
+          
+          // シェアURLをクリップボードにコピー（サポートされている場合）
+          try {
+            if (navigator.clipboard) {
+              await navigator.clipboard.writeText(result.shareUrl);
+              alert(isJapanese ? 'シェアURLがクリップボードにコピーされました' : 'Share URL has been copied to clipboard');
+            }
+          } catch (clipboardError) {
+            console.error('Error copying to clipboard:', clipboardError);
+          }
+          
+          // Twitterでシェア
+          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(result.shareUrl)}`;
+          window.open(twitterShareUrl, '_blank');
+          return;
+        }
+        
+        // Redisが設定されていない場合や他のエラーの場合は従来のシェア方法を使用
+        console.warn('Falling back to traditional sharing method:', result);
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        window.open(twitterShareUrl, '_blank');
+        
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        // APIエラーの場合は従来のシェア方法を使用
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        window.open(twitterShareUrl, '_blank');
       }
-      
-      // シェアURLをクリップボードにコピー
-      if (navigator.clipboard && result.shareUrl) {
-        await navigator.clipboard.writeText(result.shareUrl);
-        alert(isJapanese ? 'シェアURLがクリップボードにコピーされました' : 'Share URL has been copied to clipboard');
-      }
-      
-      // Twitterでシェア
-      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(result.shareUrl)}`;
-      window.open(twitterShareUrl, '_blank');
     } catch (error) {
-      console.error('Error saving result for sharing:', error);
-      alert(isJapanese ? 'シェアの準備中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while preparing to share. Please try again.');
+      console.error('Error in share handling:', error);
       
-      // エラーが発生した場合は従来のシェア方法を使用
+      // エラーが発生した場合はユーザーに通知し、従来のシェア方法を使用
+      alert(isJapanese ? 'シェアの準備中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while preparing to share. Please try again.');
       const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
       window.open(twitterShareUrl, '_blank');
     }

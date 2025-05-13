@@ -20,18 +20,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 一意のシェアIDを生成
     const shareId = generateShareId();
     
-    // KVストアにデータを保存
-    const success = await saveResultToKV(shareId, resultData);
+    // Redis設定が存在するか確認
+    const hasRedisConfig = 
+      process.env.UPSTASH_REDIS_REST_URL && 
+      process.env.UPSTASH_REDIS_REST_TOKEN;
     
-    if (!success) {
-      return res.status(500).json({ error: 'Failed to save result data' });
-    }
+    // KVストアにデータを保存（開発環境ではモック成功）
+    const success = await saveResultToKV(shareId, resultData);
     
     // ホスト名を取得
     const host = req.headers.host || 'localhost:3000';
     
     // シェアURLを生成
     const shareUrl = generateShareUrl(shareId, host);
+    
+    // 開発環境のRedis未設定の場合の対応
+    if (!hasRedisConfig && process.env.NODE_ENV === 'development') {
+      console.log(`[Development Mode] Would save data with ID: ${shareId}`);
+      console.log('Redis is not configured. Generated mock share URL:', shareUrl);
+      
+      // 開発環境では成功レスポンスを返す（警告付き）
+      return res.status(200).json({
+        success: true,
+        shareId,
+        shareUrl,
+        warning: 'Running in development mode without Redis. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for production use.'
+      });
+    }
+    
+    // 保存が失敗した場合
+    if (!success) {
+      console.error('Failed to save result data to Redis');
+      return res.status(500).json({ 
+        error: 'Failed to save result data'
+      });
+    }
     
     // 成功レスポンスを返す
     return res.status(200).json({
