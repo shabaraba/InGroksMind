@@ -22,13 +22,12 @@ const ReplyRequest: React.FC<ReplyRequestProps> = ({
 }) => {
   const { language } = useContext(LanguageContext);
   const t = getTranslation();
-  const [styleName, setStyleName] = useState('');
+  // スタイル名は直接使用するので変数として保持する必要なし
   const [requestText, setRequestText] = useState('');
 
   // 言語変更時にスタイル名とリクエストテキストを更新
   useEffect(() => {
     const currentStyleName = isJapanese ? style.name_ja : style.name_en;
-    setStyleName(currentStyleName);
 
     // 翻訳テキストを最新の言語で取得
     const currentT = getTranslation();
