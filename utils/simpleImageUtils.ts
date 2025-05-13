@@ -13,8 +13,6 @@ export const generateOgImageUrl = (
 ): string => {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const language = locale === 'ja' ? 'ja' : 'en';
-  
-  // 相対パスを使用して、どんな環境でも適切なURLになるようにする
-  // ホストを含む絶対URLではなく相対パスを返す
-  return `/og-image-home-new.png?v=2`;
+
+  return `/api/og?quizId=${quizId}&styleId=${styleId}&score=${score}&locale=${language}`;
 };

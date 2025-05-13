@@ -7,7 +7,7 @@ import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
-import { generateResultUrl, generateShareText } from '../../utils/imageUtils';
+import { generateResultUrl, generateShareText } from '../../utils/shareUtils';
 import { generateOgImageUrl } from '../../utils/simpleImageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
@@ -175,7 +175,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
           : `${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={resultUrl} />
-        <meta property="og:image" content={`${ogImageUrl}`} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png?v=2`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
 
@@ -184,7 +184,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
         <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={`${ogImageUrl}`} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/og-image-home-new.png?v=2`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
