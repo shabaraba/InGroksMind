@@ -377,9 +377,39 @@ const ResultPage: NextPage<ResultPageProps> = ({
 // サーバーサイドのデータ取得
 export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
   // 言語パラメータ取得（リダイレクト用）
-  const langParam = context.query.lang as string;
-  const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
-  const langQuery = locale ? `?lang=${locale}` : '';
+  let langParam = context.query.lang as string;
+  
+  // POSTデータから言語設定を取得（もしPOSTで送信された場合）
+  if (context.req.method === 'POST') {
+    try {
+      // bodyから直接取得
+      if (context.req.body && typeof context.req.body === 'object' && context.req.body.lang) {
+        langParam = context.req.body.lang as string;
+        console.log("Language from POST body:", langParam);
+      }
+      
+      // フォームデータから取得
+      if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+        const bodyBuffer = await new Promise<Buffer>((resolve) => {
+          const bodyChunks: Buffer[] = [];
+          context.req.on('data', (chunk) => bodyChunks.push(chunk));
+          context.req.on('end', () => resolve(Buffer.concat(bodyChunks)));
+        });
+        
+        const formData = new URLSearchParams(bodyBuffer.toString());
+        if (formData.has('lang')) {
+          langParam = formData.get('lang') || langParam;
+          console.log("Language from form data:", langParam);
+        }
+      }
+    } catch (error) {
+      console.error('Error extracting language from POST data:', error);
+    }
+  }
+  
+  // 明示的に 'ja' または 'en' のみを許可
+  const locale = langParam === 'ja' ? 'ja' : 'en';
+  const langQuery = `?lang=${locale}`;
 
   // IDを取得
   const { id } = context.params || {};
@@ -395,19 +425,51 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
 
   // POSTデータを処理（フォーム送信から）
   if (context.req.method === 'POST') {
-    // POSTボディからデータを取得
-    const body = context.req.body || {};
-    
-    // フォームデータをクエリパラメータに変換
-    if (body.answer) context.query.answer = body.answer;
-    if (body.quizId) context.query.quizId = body.quizId;
-    if (body.styleId) context.query.styleId = body.styleId;
-    if (body.locale) context.query.lang = body.locale;
-    if (body.quizUserId) context.query.quizUserId = body.quizUserId;
-    if (body.replyUserId) context.query.replyUserId = body.replyUserId;
-    
-    // 直接アクセスフラグを設定
-    context.query.direct = '1';
+    try {
+      // POSTボディのデータを取得
+      const body = context.req.body || {};
+  
+      // formデータをパース (multipart/form-data または application/x-www-form-urlencoded)
+      if (typeof body === 'object') {
+        console.log('POST body received:', body);
+      
+        // フォームデータをクエリパラメータに変換
+        if (body.answer) context.query.answer = body.answer;
+        if (body.quizId) context.query.quizId = body.quizId;
+        if (body.styleId) context.query.styleId = body.styleId;
+        if (body.locale) context.query.lang = body.locale;
+        if (body.quizUserId) context.query.quizUserId = body.quizUserId;
+        if (body.replyUserId) context.query.replyUserId = body.replyUserId;
+      }
+      
+      // フォームデータが空の場合は、リクエストから直接読み取りを試みる
+      if (!context.query.answer && context.req.url) {
+        const bodyBuffer = await new Promise<Buffer>((resolve) => {
+          const bodyChunks: Buffer[] = [];
+          context.req.on('data', (chunk) => bodyChunks.push(chunk));
+          context.req.on('end', () => resolve(Buffer.concat(bodyChunks)));
+        });
+        
+        const rawBody = bodyBuffer.toString();
+        console.log('Raw body:', rawBody);
+        
+        // x-www-form-urlencodedの場合
+        if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+          const formData = new URLSearchParams(rawBody);
+          if (formData.has('answer')) context.query.answer = formData.get('answer') || '';
+          if (formData.has('quizId')) context.query.quizId = formData.get('quizId') || '';
+          if (formData.has('styleId')) context.query.styleId = formData.get('styleId') || '';
+          if (formData.has('locale')) context.query.lang = formData.get('locale') || '';
+          if (formData.has('quizUserId')) context.query.quizUserId = formData.get('quizUserId') || '';
+          if (formData.has('replyUserId')) context.query.replyUserId = formData.get('replyUserId') || '';
+        }
+      }
+      
+      // 直接アクセスフラグを設定
+      context.query.direct = '1';
+    } catch (error) {
+      console.error('Error processing POST data:', error);
+    }
   }
 
   // 圧縮されたクエリパラメータがあれば展開
