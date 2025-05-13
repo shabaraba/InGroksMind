@@ -13,14 +13,8 @@ export const generateOgImageUrl = (
 ): string => {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const language = locale === 'ja' ? 'ja' : 'en';
-  
-  try {
-    // OG画像に関する問題を解決するため、動的APIではなく静的画像ファイルを使用
-    // キャッシュを無効化するためのタイムスタンプパラメータを追加
-    const timestamp = new Date().getTime();
-    return `${protocol}://${host}/og-image-home-new.png?t=${timestamp}`;
-  } catch (error) {
-    // エラーが発生した場合は最もシンプルな静的画像ファイルを使用
-    return `${protocol}://${host}/og-image-static.png`;
-  }
+
+  // OG画像URLの生成を静的なファイルに変更（キャッシュを防ぐためにクエリパラメータを追加）
+  // ここでは動的な生成を試みず、直接静的ファイルを返す
+  return `${protocol}://${host}/og-image-home-new.png?v=2`;
 };

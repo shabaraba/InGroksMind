@@ -73,10 +73,10 @@ export const getGeminiAnswerServer = async (
 
     // レスポンスからテキストを抽出
     const textResponse = response.data.candidates[0].content.parts[0].text;
-    
+
     // アバター画像URL
     const avatarUrl = "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c";
-    
+
     return {
       content: textResponse.trim(),
       avatar_url: avatarUrl
@@ -85,6 +85,94 @@ export const getGeminiAnswerServer = async (
     console.error('Error calling Gemini API:', error);
     // エラー時はモックデータを返す
     return getMockGeminiAnswer(quiz, style, locale, false);
+  }
+};
+
+/**
+ * サーバーサイドでGemini APIを使用して参考回答を生成する
+ */
+export const getGeminiReferenceAnswerServer = async (
+  quiz: QuizItem,
+  style: StyleVariation,
+  locale: string = 'ja'
+): Promise<GeminiAnswer | null> => {
+  try {
+    // APIキーを環境変数から取得
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.log("API key not configured, returning mock reference data");
+      return getMockGeminiReferenceAnswer(quiz, style, locale, true);
+    }
+
+    // 言語に応じたコンテンツとスタイル
+    const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
+    const styleName = locale === 'ja' ? style.name_ja : style.name_en;
+    const styleDesc = locale === 'ja' ? style.description_ja : style.description_en;
+
+    // 参考回答用のプロンプトテキスト (言語によって切り替え)
+    let prompt;
+    if (locale === 'ja') {
+      prompt = "以下の投稿に対して参考回答を作成してください:\n\n" +
+        "投稿: " + content + "\n" +
+        "指定された口調: " + styleName + "\n" +
+        "指定口調の説明: " + styleDesc + "\n\n" +
+        "注意: \n" +
+        "- この回答は参考例として表示されます\n" +
+        "- 回答は指定された口調とは異なる「専門家」の口調で作成してください\n" +
+        "- 事実に基づいた正確な情報のみを提供してください\n" +
+        "- 回答は200〜300文字程度にしてください\n" +
+        "- 必ず日本語で回答してください";
+    } else {
+      prompt = "Please create a reference answer for the following post:\n\n" +
+        "Post: " + content + "\n" +
+        "Specified tone: " + styleName + "\n" +
+        "Tone description: " + styleDesc + "\n\n" +
+        "Note: \n" +
+        "- This answer will be displayed as a reference example\n" +
+        "- Create the answer in an 'expert' tone that is different from the specified tone\n" +
+        "- Provide only accurate information based on facts\n" +
+        "- Keep your answer around 200-300 characters\n" +
+        "- Answer in English";
+    }
+
+    // Gemini APIのエンドポイント
+    const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+    // Gemini APIリクエスト
+    const response = await axios.post(
+      `${GEMINI_API_ENDPOINT}?key=${apiKey}`,
+      {
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.3, // より事実重視の回答のため温度を下げる
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
+      }
+    );
+
+    // レスポンスからテキストを抽出
+    const textResponse = response.data.candidates[0].content.parts[0].text;
+
+    // アバター画像URL
+    const avatarUrl = "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c";
+
+    return {
+      content: textResponse.trim(),
+      avatar_url: avatarUrl,
+      is_reference: true
+    };
+  } catch (error) {
+    console.error('Error calling Gemini API for reference answer:', error);
+    // エラー時はモックデータを返す
+    return getMockGeminiReferenceAnswer(quiz, style, locale, false);
   }
 };
 
@@ -243,12 +331,32 @@ const getMockGeminiAnswer = (
 ): GeminiAnswer => {
   const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
   const styleName = locale === 'ja' ? style.name_ja : style.name_en;
-  
+
   return {
     content: locale === 'ja'
       ? `${isApiDisabled ? '（APIキーが設定されていないため）' : '（API呼び出しエラーのため）'}これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。実際の情報に基づいて回答すると、このようになるでしょう。`
       : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic. Based on factual information, the answer would look like this. ${isApiDisabled ? '(API key is not configured)' : '(API call error occurred)'}`,
     avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+  };
+};
+
+/**
+ * モックのGemini参考回答を生成する
+ */
+const getMockGeminiReferenceAnswer = (
+  quiz: QuizItem,
+  style: StyleVariation,
+  locale: string,
+  isApiDisabled: boolean
+): GeminiAnswer => {
+  const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
+
+  return {
+    content: locale === 'ja'
+      ? `${isApiDisabled ? '（APIキーが設定されていないため）' : '（API呼び出しエラーのため）'}これはGeminiの参考回答です。${content}について、専門家の立場から客観的な情報を提供します。このトピックに関する正確な事実は以下の通りです。`
+      : `This is a reference answer from Gemini. I'll provide objective information about ${content} from an expert's perspective. The accurate facts about this topic are as follows. ${isApiDisabled ? '(API key is not configured)' : '(API call error occurred)'}`,
+    avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c",
+    is_reference: true
   };
 };
 
