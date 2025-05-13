@@ -6,10 +6,9 @@ import { useRouter } from 'next/router';
 import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
-import { decodeResultId } from '../../utils/geminiService';
-import { generateResultUrl, generateShareText } from '../../utils/shareUtils';
+import { generateShareText } from '../../utils/shareUtils';
 import { generateOgImageUrl } from '../../utils/simpleImageUtils';
-import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
+import { FeedbackData, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
 import { getGrokUser } from '../../data/virtualUsers';
@@ -26,7 +25,6 @@ import * as ga from '../../utils/analytics';
 
 // 結果ページのプロパティ
 interface ResultPageProps {
-  resultId: string;
   quizId: number;
   styleId: number;
   score: number;
@@ -41,7 +39,6 @@ interface ResultPageProps {
 
 // 結果ページコンポーネント
 const ResultPage: NextPage<ResultPageProps> = ({
-  resultId,
   quizId,
   styleId,
   score,
@@ -123,8 +120,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [t, score, isSharedView]);
   
+  // 一意のシードを生成（タイムスタンプベース、シェア時に本当のIDが生成される）
+  const seedBase = `result-${Date.now()}`;
+  
   // ユーザー情報の初期化
-  const initialUsers = initializeUsers(resultId, quizId, isJapanese, quizUserId, replyUserId);
+  const initialUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
   const [quizUser, setQuizUser] = useState(initialUsers[0]);
   const [replyUser, setReplyUser] = useState(initialUsers[1]);
   const [currentGrokUser, setCurrentGrokUser] = useState(getGrokUser(isJapanese));
@@ -136,11 +136,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
   // 言語が変更されたときにユーザー名を更新
   useEffect(() => {
     // 言語に合わせてユーザー情報を更新
-    const updatedUsers = initializeUsers(resultId, quizId, isJapanese, quizUserId, replyUserId);
+    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
     setQuizUser(updatedUsers[0]);
     setReplyUser(updatedUsers[1]);
     setCurrentGrokUser(getGrokUser(isJapanese));
-  }, [isJapanese, resultId, quizId, quizUserId, replyUserId]);
+  }, [isJapanese, seedBase, quizId, quizUserId, replyUserId]);
 
   // 評価結果表示後、3秒後に「1件のポストを表示」ボタンを表示（シェア訪問時は表示しない）
   useEffect(() => {
@@ -154,12 +154,12 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [feedbackData.gemini_answer, isSharedView]);
   
-  // KVに結果を保存してからシェアする
+  // シェアボタン押下時にKVに結果を保存してからシェアする
   const handleShare = async () => {
     ga.trackShareResult(score, 'twitter');
     
     try {
-      // シェア用のデータを準備
+      // シェア用のデータを準備（このタイミングでだけ保存する）
       const resultData = {
         quizId,
         styleId,
@@ -194,7 +194,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
             console.error('Error copying to clipboard:', clipboardError);
           }
           
-          // Twitterでシェア
+          // Twitterでシェア（シェアURLを含める）
           const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(result.shareUrl)}`;
           window.open(twitterShareUrl, '_blank');
           return;
@@ -207,7 +207,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
         
       } catch (apiError) {
         console.error('API error:', apiError);
-        // APIエラーの場合は従来のシェア方法を使用
+        // APIエラーの場合は従来のシェア方法を使用（URLなし）
         const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
         window.open(twitterShareUrl, '_blank');
       }
@@ -277,7 +277,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
             <Post
               user={quizUser}
               content={content}
-              postId={`quiz-${resultId}-${quizId}`}
+              postId={`quiz-${seedBase}-${quizId}`}
             />
             
             {/* Grokへのリプライリクエスト */}
@@ -286,7 +286,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
               originalUser={quizUser}
               style={style}
               isJapanese={locale === 'ja'}
-              customSeed={`reply-${resultId}-${styleId}`}
+              customSeed={`reply-${seedBase}-${styleId}`}
             />
             
             {/* Grokの回答 */}
@@ -314,13 +314,13 @@ const ResultPage: NextPage<ResultPageProps> = ({
                     {userAnswer}
                   </div>
 
-                  <PostInteractions seed={`grok-${resultId}`} />
+                  <PostInteractions seed={`grok-${seedBase}`} />
                 </div>
               </div>
             </div>
 
             {/* Geminiの評価 */}
-            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={resultId} />
+            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={seedBase} />
 
             {/* 参考回答を表示するボタン */}
             {feedbackData.gemini_answer && showShowMoreButton && !showReferencePost && (
@@ -336,7 +336,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
             {feedbackData.gemini_answer && showReferencePost && (
               <GeminiAnswerDisplay
                 geminiAnswer={feedbackData.gemini_answer}
-                resultId={resultId}
+                resultId={seedBase}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
               />
@@ -394,21 +394,22 @@ const ResultPage: NextPage<ResultPageProps> = ({
 };
 
 // サーバーサイドのデータ取得
-export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
+export const getServerSideProps: GetServerSideProps<ResultPageProps> = async (context) => {
   // 言語パラメータのデフォルト設定
   let langParam = 'en'; // デフォルトを英語に設定
+  let quizId = 1;
+  let styleId = 1;
+  let userAnswer = '';
+  let quizUserId = '1';
+  let replyUserId = '2';
   
-  // POSTデータから言語設定を取得（もしPOSTで送信された場合）
+  // POSTリクエストの場合のみ処理
   if (context.req.method === 'POST') {
     try {
-      // POSTリクエストの場合、URLから言語設定を探す（ミドルウェアが追加したもの）
-      if (context.query.lang) {
-        langParam = context.query.lang as string;
-        console.log("Language from URL params:", langParam);
-      }
+      // POSTデータを取得
+      let formData: URLSearchParams | null = null;
       
-      // フォームデータを直接取得（必要な場合のみ）
-      if (!langParam && context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+      if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
         try {
           const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
             const bodyChunks: Buffer[] = [];
@@ -427,119 +428,58 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
           });
           
           // フォームデータをパース
-          const formData = new URLSearchParams(bodyBuffer.toString());
+          formData = new URLSearchParams(bodyBuffer.toString());
+          console.log('Form data parsed:', Object.fromEntries(formData.entries()));
           
-          // 言語設定を探す
-          if (formData.has('lang')) {
-            langParam = formData.get('lang') || langParam;
-            console.log("Language from form data:", langParam);
+          // 言語設定を取得
+          if (formData.has('locale')) {
+            langParam = formData.get('locale') || langParam;
           }
           
-          // localeキーでも探す
-          if (!langParam && formData.has('locale')) {
-            langParam = formData.get('locale') || langParam;
-            console.log("Language from form data (locale):", langParam);
+          // その他の必要なデータを取得
+          if (formData.has('quizId')) {
+            quizId = parseInt(formData.get('quizId') || '1', 10);
+          }
+          
+          if (formData.has('styleId')) {
+            styleId = parseInt(formData.get('styleId') || '1', 10);
+          }
+          
+          if (formData.has('answer')) {
+            userAnswer = formData.get('answer') || '';
+          }
+          
+          if (formData.has('quizUserId')) {
+            quizUserId = formData.get('quizUserId') || '1';
+          }
+          
+          if (formData.has('replyUserId')) {
+            replyUserId = formData.get('replyUserId') || '2';
           }
         } catch (readError) {
           console.error('Error reading form data:', readError);
         }
       }
     } catch (error) {
-      console.error('Error extracting language from POST data:', error);
+      console.error('Error extracting data from POST:', error);
     }
+  } else {
+    // POSTリクエストでない場合はホームにリダイレクト
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
   }
   
   // 明示的に 'ja' または 'en' のみを許可
   const locale = langParam === 'ja' ? 'ja' : 'en';
   const langQuery = `?lang=${locale}`;
 
-  // IDを取得
-  const { id } = context.params || {};
-  if (!id) {
-    // 存在しないIDの場合はホームにリダイレクト
-    return {
-      redirect: {
-        destination: `/${langQuery}`,
-        permanent: false,
-      },
-    };
-  }
-
-  // POSTデータを処理（フォーム送信から）
-  if (context.req.method === 'POST') {
-    try {
-      // ミドルウェアがフォームデータをURLクエリに変換しているので、
-      // 必要に応じてここで取得できる（context.query）
-      
-      // もしミドルウェアが処理しなかった場合、または追加のフィールドが必要な場合は
-      // リクエストから直接読み取りを行う
-      if (!context.query.answer && context.req.headers['content-type']) {
-        try {
-          const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
-            const bodyChunks: Buffer[] = [];
-            
-            context.req.on('data', (chunk: Buffer) => {
-              bodyChunks.push(chunk);
-            });
-            
-            context.req.on('end', () => {
-              resolve(Buffer.concat(bodyChunks));
-            });
-            
-            context.req.on('error', (err) => {
-              reject(err);
-            });
-          });
-          
-          // フォームデータをパース
-          if (context.req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
-            const formData = new URLSearchParams(bodyBuffer.toString());
-            console.log('Form data parsed:', Object.fromEntries(formData.entries()));
-            
-            // 必要なパラメータを抽出
-            if (formData.has('answer')) context.query.answer = formData.get('answer') || '';
-            if (formData.has('quizId')) context.query.quizId = formData.get('quizId') || '';
-            if (formData.has('styleId')) context.query.styleId = formData.get('styleId') || '';
-            if (formData.has('locale')) context.query.lang = formData.get('locale') || '';
-            if (formData.has('quizUserId')) context.query.quizUserId = formData.get('quizUserId') || '';
-            if (formData.has('replyUserId')) context.query.replyUserId = formData.get('replyUserId') || '';
-          }
-        } catch (readError) {
-          console.error('Error reading form data:', readError);
-        }
-      }
-      
-      // 直接アクセスフラグを設定
-      context.query.direct = '1';
-    } catch (error) {
-      console.error('Error processing POST data:', error);
-    }
-  }
-
-  // 圧縮されたクエリパラメータがあれば展開
-  const compressedData = context.query.c as string;
-  if (compressedData) {
-    const params = expandUrlParams(compressedData);
-    params.forEach((value, key) => { context.query[key] = value; });
-  }
-
-  // ユーザーの回答を取得
-  const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
-
   try {
-    // IDからクイズID, スタイルID, スコアを抽出
-    const resultData = decodeResultId(id);
-    if (!resultData) {
-      // 無効なIDの場合はホームにリダイレクト
-      return {
-        redirect: {
-          destination: `/${langQuery}`,
-          permanent: false,
-        },
-      };
-    }
-
-    const { quizId, styleId, score } = resultData;
+    // ダミースコアの設定（実際の評価はこの後行われる）
+    const score = 70;
     
     // クイズとスタイルの存在確認
     const quiz = quizData.find(q => q.id === quizId);
@@ -593,12 +533,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     const actualScore = feedbackData.total_score;
     const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
 
-    // 結果ページURL生成
-    const resultUrl = generateResultUrl(
-      id, host, userAnswer, locale,
-      context.query.quizUserId as string,
-      context.query.replyUserId as string
-    );
+    // 結果ページURL生成 - 一時的なダミーURL（実際のシェアURLはAPI経由で生成）
+    const resultUrl = `${process.env.NEXT_PUBLIC_SITE_URL || `${host.includes('localhost') ? 'http' : 'https'}://${host}`}/result`;
 
     // シェアテキスト生成
     const shareText = generateShareText(quiz, style, score, locale, resultUrl);
@@ -612,7 +548,6 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
 
     return {
       props: {
-        resultId: id,
         quizId,
         styleId,
         score,

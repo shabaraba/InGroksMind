@@ -42,6 +42,6 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // 結果ページのルートにマッチ
-    '/result/:path*'
+    '/result'
   ],
 };

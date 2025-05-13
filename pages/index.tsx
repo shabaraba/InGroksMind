@@ -125,18 +125,13 @@ export default function Home() {
 
     setIsSubmitting(true);
     try {
-      // 結果ID生成
-      const dummyScore = 70; // ダミースコア（実際のスコアはサーバーサイドで計算される）
-      const resultId = generateResultId(quizId, styleId, dummyScore);
-      
       // Google Analyticsにイベントを送信
-      ga.trackAnswerSubmission(dummyScore, isJapanese ? style.name_ja : style.name_en);
+      ga.trackAnswerSubmission(70, isJapanese ? style.name_ja : style.name_en);
 
-      // POSTとGETの両方でデータを渡す方法に変更
-      // URLパスだけを含める（クエリパラメータなし）
-      const path = `/result/${resultId}`;
+      // シンプルなパス指定 - resultIdなし
+      const path = '/result';
       
-      // 2. 詳細なデータはPOSTで送信
+      // 詳細なデータはPOSTで送信
       const formData = new URLSearchParams();
       formData.append('answer', answer);
       formData.append('quizId', quizId.toString());
@@ -145,7 +140,7 @@ export default function Home() {
       formData.append('quizUserId', quizUser.id.toString());
       formData.append('replyUserId', replyUser.id.toString());
       
-      // 3. POSTリクエストの実行（フォームを直接作成して送信）
+      // POSTリクエストの実行（フォームを直接作成して送信）
       const form = document.createElement('form');
       form.method = 'post';
       form.action = path;
