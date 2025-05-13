@@ -154,11 +154,52 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [feedbackData.gemini_answer, isSharedView]);
   
-  // Xでシェアする
-  const handleShare = () => {
+  // KVに結果を保存してからシェアする
+  const handleShare = async () => {
     ga.trackShareResult(score, 'twitter');
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-    window.open(twitterShareUrl, '_blank');
+    
+    try {
+      // シェア用のデータを準備
+      const resultData = {
+        quizId,
+        styleId,
+        answer: userAnswer,
+        feedback: feedbackData,
+        timestamp: Date.now()
+      };
+      
+      // API経由でデータを保存し、シェアID/URLを取得
+      const response = await fetch('/api/save-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resultData),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save result');
+      }
+      
+      // シェアURLをクリップボードにコピー
+      if (navigator.clipboard && result.shareUrl) {
+        await navigator.clipboard.writeText(result.shareUrl);
+        alert(isJapanese ? 'シェアURLがクリップボードにコピーされました' : 'Share URL has been copied to clipboard');
+      }
+      
+      // Twitterでシェア
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(result.shareUrl)}`;
+      window.open(twitterShareUrl, '_blank');
+    } catch (error) {
+      console.error('Error saving result for sharing:', error);
+      alert(isJapanese ? 'シェアの準備中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while preparing to share. Please try again.');
+      
+      // エラーが発生した場合は従来のシェア方法を使用
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+      window.open(twitterShareUrl, '_blank');
+    }
   };
   
   return (
@@ -268,7 +309,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
                 onClick={() => setShowReferencePost(true)}
                 className="w-full py-2 text-twitter-blue hover:bg-gray-800/50 transition-colors border-t border-b border-gray-700 font-medium text-sm"
               >
-                {isJapanese ? '2件のポストを表示' : 'Show 2 posts'}
+                {isJapanese ? '1件のポストを表示' : 'Show 1 post'}
               </button>
             )}
 
@@ -279,17 +320,6 @@ const ResultPage: NextPage<ResultPageProps> = ({
                 resultId={resultId}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
-              />
-            )}
-
-            {/* Geminiの参考回答表示 */}
-            {feedbackData.gemini_reference_answer && showReferencePost && (
-              <GeminiAnswerDisplay
-                geminiAnswer={feedbackData.gemini_reference_answer}
-                resultId={resultId}
-                locale={isJapanese ? 'ja' : 'en'}
-                t={t}
-                isReference={true}
               />
             )}
 
@@ -363,6 +393,23 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     };
   }
 
+  // POSTデータを処理（フォーム送信から）
+  if (context.req.method === 'POST') {
+    // POSTボディからデータを取得
+    const body = context.req.body || {};
+    
+    // フォームデータをクエリパラメータに変換
+    if (body.answer) context.query.answer = body.answer;
+    if (body.quizId) context.query.quizId = body.quizId;
+    if (body.styleId) context.query.styleId = body.styleId;
+    if (body.locale) context.query.lang = body.locale;
+    if (body.quizUserId) context.query.quizUserId = body.quizUserId;
+    if (body.replyUserId) context.query.replyUserId = body.replyUserId;
+    
+    // 直接アクセスフラグを設定
+    context.query.direct = '1';
+  }
+
   // 圧縮されたクエリパラメータがあれば展開
   const compressedData = context.query.c as string;
   if (compressedData) {
@@ -410,15 +457,10 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // サーバーサイドでGemini回答を取得
     const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
 
-    // サーバーサイドでGemini参考回答を取得
-    const geminiReferenceAnswer = await getGeminiReferenceAnswerServer(quiz, style, locale);
-
     // サーバーサイドで回答評価
     let feedbackData;
     if (userAnswer) {
       feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
-      // 参考回答を追加
-      feedbackData.gemini_reference_answer = geminiReferenceAnswer;
     } else {
       // 評価結果のみ渡す（フィードバック部分だけを含める）
       const accuracyScore = Math.floor(score / 2);
@@ -437,8 +479,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
         overall_comment: score >= 80 ?
           (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
           (locale === 'ja' ? "良い回答です。" : "Good answer."),
-        gemini_answer: geminiAnswer,
-        gemini_reference_answer: geminiReferenceAnswer
+        gemini_answer: geminiAnswer
       };
     }
 

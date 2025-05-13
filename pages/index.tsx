@@ -125,27 +125,51 @@ export default function Home() {
 
     setIsSubmitting(true);
     try {
-      // クライアント側では評価せず、ダミーデータを作成して結果ページに転送
-      // 実際の評価は結果ページのサーバーサイドで行われる
-      const dummyScore = 70; // ダミースコア（実際のスコアはサーバーサイドで計算される）
+      // フォームデータをPOSTリクエストで送信する
+      const formData = new FormData();
+      formData.append('answer', answer);
+      formData.append('quizId', quizId.toString());
+      formData.append('styleId', styleId.toString());
+      formData.append('locale', isJapanese ? 'ja' : 'en');
+      formData.append('quizUserId', quizUser.id.toString());
+      formData.append('replyUserId', replyUser.id.toString());
 
       // 結果ID生成
+      const dummyScore = 70; // ダミースコア（実際のスコアはサーバーサイドで計算される）
       const resultId = generateResultId(quizId, styleId, dummyScore);
-
+      
       // Google Analyticsにイベントを送信
       ga.trackAnswerSubmission(dummyScore, isJapanese ? style.name_ja : style.name_en);
 
-      // パラメータを設定（直接アクセスフラグを含む）
-      const params = new URLSearchParams({
-        answer: answer,
-        lang: isJapanese ? 'ja' : 'en',
-        quizUserId: quizUser.id.toString(),
-        replyUserId: replyUser.id.toString(),
-        direct: '1' // 自分で回答した場合は直接アクセスとマーク
-      });
+      // 結果ページにPOSTリクエストでフォームを送信
+      // URLSearchParamsオブジェクトを使用してPOSTデータを作成
+      const params = new URLSearchParams();
+      params.append('answer', answer);
+      params.append('quizId', quizId.toString());
+      params.append('styleId', styleId.toString());
+      params.append('locale', isJapanese ? 'ja' : 'en');
+      params.append('quizUserId', quizUser.id.toString());
+      params.append('replyUserId', replyUser.id.toString());
 
-      // 結果ページにリダイレクト (言語パラメータとユーザーIDを含める)
-      router.push(`/result/${resultId}?${params.toString()}`);
+      // 結果ページにリダイレクト
+      // POSTリクエストでリダイレクトするのは難しいので、クライアントサイドで処理する
+      // 隠しフォームを作成して送信する
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = `/result/${resultId}`;
+      
+      // パラメータをフォームに追加
+      for (const [key, value] of params.entries()) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+      
+      // フォームをDOMに追加して送信
+      document.body.appendChild(form);
+      form.submit();
     } catch (error) {
       console.error('Error submitting answer:', error);
       alert('回答の評価中にエラーが発生しました。もう一度お試しください。');
