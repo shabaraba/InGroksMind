@@ -5,6 +5,8 @@ const nextConfig = {
   // カスタム設定
   images: {
     domains: ['lh3.googleusercontent.com'], // Geminiのアバター画像用
+    // Vercelの画像最適化
+    unoptimized: false,
   },
   // 環境変数
   env: {
