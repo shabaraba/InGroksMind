@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { NextApiHandler, NextApiMiddleware } from 'next';
+import type { NextApiHandler } from 'next';
+
+// NextApiMiddlewareを自前で定義
+type NextApiMiddleware = (handler: NextApiHandler) => NextApiHandler;
 
 // POSTリクエストの本文を解析するミドルウェア
 export const bodyParser: NextApiMiddleware = (handler) => async (req: NextApiRequest, res: NextApiResponse) => {
