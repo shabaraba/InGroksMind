@@ -441,10 +441,10 @@ export const generateAndSaveOgImage = async (
     // 言語に応じたハッシュタグ表示
     if (isJapanese) {
       // 日本語の場合
-      ctx.fillText('#Grokの気持ち #InGroksMind', width - 50, height - 40);
+      ctx.fillText('#Grokの気持ち #InGrokMind', width - 50, height - 40);
     } else {
       // 英語の場合
-      ctx.fillText('#InGroksMind #Grokの気持ち', width - 50, height - 40);
+      ctx.fillText('#InGrokMind #Grokの気持ち', width - 50, height - 40);
     }
 
     // 左下にクレジット（輝くテキスト）

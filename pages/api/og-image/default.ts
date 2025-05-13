@@ -47,7 +47,7 @@ export default async function handler(
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText('#BeGrok', width - 50, height - 50);
-    ctx.fillText(isJapanese ? '#Grokの気持ち' : '#InGroksMind', width - 50, height - 20);
+    ctx.fillText(isJapanese ? '#Grokの気持ち' : '#InGrokMind', width - 50, height - 20);
 
     // 左下にクレジット
     ctx.textAlign = 'left';

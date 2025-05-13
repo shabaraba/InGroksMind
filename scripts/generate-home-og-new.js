@@ -180,7 +180,7 @@ async function generateImage() {
     ctx.fillStyle = '#1d9bf0'; // Twitter Blue
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('#Grokの気持ち #InGroksMind', 40, canvasHeight - 22);
+    ctx.fillText('#Grokの気持ち #InGrokMind', 40, canvasHeight - 22);
 
     // 著作権表示
     ctx.fillStyle = '#ffffff';

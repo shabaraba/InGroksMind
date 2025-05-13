@@ -37,9 +37,9 @@ export const translations: Translations = {
     
     // シェア
     shareButton: "結果をXでシェアする",
-    shareText: "「Grokの気持ち」で遊んでみました！\n\nお題: {content}\n指定口調: {style}\n\n私の回答が評価されました:\n正確性: {accuracyScore}/50点\n口調: {styleScore}/50点\n総合: {totalScore}/100点\n\n#Grokの気持ち #InGroksMind",
-    shareTextCompact: "「Grokの気持ち」で遊んでみました！\n総合スコア: {totalScore}/100点\n#Grokの気持ち #InGroksMind",
-    shareTextWithUrl: "「Grokの気持ち」で遊んでみました！\n総合スコア: {totalScore}/100点\n{url}\n#Grokの気持ち #InGroksMind",
+    shareText: "「Grokの気持ち」で遊んでみました！\n\nお題: {content}\n指定口調: {style}\n\n私の回答が評価されました:\n正確性: {accuracyScore}/50点\n口調: {styleScore}/50点\n総合: {totalScore}/100点\n\n#Grokの気持ち #InGrokMind",
+    shareTextCompact: "「Grokの気持ち」で遊んでみました！\n総合スコア: {totalScore}/100点\n#Grokの気持ち #InGrokMind",
+    shareTextWithUrl: "「Grokの気持ち」で遊んでみました！\n総合スコア: {totalScore}/100点\n{url}\n#Grokの気持ち #InGrokMind",
     shareUrlNote: "※シェアURLが自動的にコピーされます",
     generatingShareLink: "シェアリンク生成中...",
     generatingImage: "画像生成中...",
@@ -53,7 +53,7 @@ export const translations: Translations = {
     sharedResultAlt: "Grokの気持ちの結果",
     tryYourself: "自分も試してみる",
     shareOnX: "結果をXでシェア",
-    shareTextFromPage: "「Grokの気持ち」の面白い結果を見つけました！\n#Grokの気持ち #InGroksMind",
+    shareTextFromPage: "「Grokの気持ち」の面白い結果を見つけました！\n#Grokの気持ち #InGrokMind",
     dummyAnswer: "この質問に対する私の回答は...\n\n実際のGrokならこのように答えるでしょう。正確な情報を提供しながらも、指定された口調で回答するよう心がけています。",
     
     // 結果ページ
@@ -127,9 +127,9 @@ export const translations: Translations = {
     
     // Share
     shareButton: "Share Results on X",
-    shareText: "I played \"In Grok's Mind\"!\n\nTopic: {content}\nRequested Style: {style}\n\nMy answer was evaluated:\nAccuracy: {accuracyScore}/50 pts\nStyle: {styleScore}/50 pts\nTotal: {totalScore}/100 pts\n\n#InGroksMind #Grokの気持ち",
-    shareTextCompact: "I played \"In Grok's Mind\"!\nTotal Score: {totalScore}/100 pts\n#InGroksMind #Grokの気持ち",
-    shareTextWithUrl: "I played \"In Grok's Mind\"!\nTotal Score: {totalScore}/100 pts\n{url}\n#InGroksMind #Grokの気持ち",
+    shareText: "I played \"In Grok's Mind\"!\n\nTopic: {content}\nRequested Style: {style}\n\nMy answer was evaluated:\nAccuracy: {accuracyScore}/50 pts\nStyle: {styleScore}/50 pts\nTotal: {totalScore}/100 pts\n\n#InGrokMind #Grokの気持ち",
+    shareTextCompact: "I played \"In Grok's Mind\"!\nTotal Score: {totalScore}/100 pts\n#InGrokMind #Grokの気持ち",
+    shareTextWithUrl: "I played \"In Grok's Mind\"!\nTotal Score: {totalScore}/100 pts\n{url}\n#InGrokMind #Grokの気持ち",
     shareUrlNote: "※Share URL will be copied automatically",
     generatingShareLink: "Generating share link...",
     generatingImage: "Generating image...",
@@ -143,7 +143,7 @@ export const translations: Translations = {
     sharedResultAlt: "In Grok's Mind result",
     tryYourself: "Try it yourself",
     shareOnX: "Share on X",
-    shareTextFromPage: "I found this interesting result from \"In Grok's Mind\"!\n#InGroksMind #Grokの気持ち",
+    shareTextFromPage: "I found this interesting result from \"In Grok's Mind\"!\n#InGrokMind #Grokの気持ち",
     dummyAnswer: "My answer to this question is...\n\nThis is how the real Grok would answer. I'm trying to provide accurate information while maintaining the specified tone.",
     
     // Result page

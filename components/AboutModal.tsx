@@ -60,7 +60,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           </h3>
           <div className="flex flex-wrap gap-4 text-twitter-blue">
             <a
-              href="https://github.com/shabaraba/InGroksMind"
+              href="https://github.com/shabaraba/InGrokMind"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"

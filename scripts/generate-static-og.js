@@ -33,7 +33,7 @@ async function generateImage() {
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText('#BeGrok', width - 50, height - 50);
-    ctx.fillText('#InGroksMind', width - 50, height - 20);
+    ctx.fillText('#InGrokMind', width - 50, height - 20);
 
     // 左下にクレジット
     ctx.textAlign = 'left';
