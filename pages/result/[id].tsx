@@ -382,24 +382,47 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
   // POSTデータから言語設定を取得（もしPOSTで送信された場合）
   if (context.req.method === 'POST') {
     try {
-      // bodyから直接取得
-      if (context.req.body && typeof context.req.body === 'object' && context.req.body.lang) {
-        langParam = context.req.body.lang as string;
-        console.log("Language from POST body:", langParam);
+      // POSTリクエストの場合、URLから言語設定を探す（ミドルウェアが追加したもの）
+      if (context.query.lang) {
+        langParam = context.query.lang as string;
+        console.log("Language from URL params:", langParam);
       }
       
-      // フォームデータから取得
-      if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
-        const bodyBuffer = await new Promise<Buffer>((resolve) => {
-          const bodyChunks: Buffer[] = [];
-          context.req.on('data', (chunk) => bodyChunks.push(chunk));
-          context.req.on('end', () => resolve(Buffer.concat(bodyChunks)));
-        });
-        
-        const formData = new URLSearchParams(bodyBuffer.toString());
-        if (formData.has('lang')) {
-          langParam = formData.get('lang') || langParam;
-          console.log("Language from form data:", langParam);
+      // フォームデータを直接取得（必要な場合のみ）
+      if (!langParam && context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+        try {
+          const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
+            const bodyChunks: Buffer[] = [];
+            
+            context.req.on('data', (chunk: Buffer) => {
+              bodyChunks.push(chunk);
+            });
+            
+            context.req.on('end', () => {
+              resolve(Buffer.concat(bodyChunks));
+            });
+            
+            context.req.on('error', (err) => {
+              reject(err);
+            });
+          });
+          
+          // フォームデータをパース
+          const formData = new URLSearchParams(bodyBuffer.toString());
+          
+          // 言語設定を探す
+          if (formData.has('lang')) {
+            langParam = formData.get('lang') || langParam;
+            console.log("Language from form data:", langParam);
+          }
+          
+          // localeキーでも探す
+          if (!langParam && formData.has('locale')) {
+            langParam = formData.get('locale') || langParam;
+            console.log("Language from form data (locale):", langParam);
+          }
+        } catch (readError) {
+          console.error('Error reading form data:', readError);
         }
       }
     } catch (error) {
@@ -426,42 +449,44 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
   // POSTデータを処理（フォーム送信から）
   if (context.req.method === 'POST') {
     try {
-      // POSTボディのデータを取得
-      const body = context.req.body || {};
-  
-      // formデータをパース (multipart/form-data または application/x-www-form-urlencoded)
-      if (typeof body === 'object') {
-        console.log('POST body received:', body);
+      // ミドルウェアがフォームデータをURLクエリに変換しているので、
+      // 必要に応じてここで取得できる（context.query）
       
-        // フォームデータをクエリパラメータに変換
-        if (body.answer) context.query.answer = body.answer;
-        if (body.quizId) context.query.quizId = body.quizId;
-        if (body.styleId) context.query.styleId = body.styleId;
-        if (body.locale) context.query.lang = body.locale;
-        if (body.quizUserId) context.query.quizUserId = body.quizUserId;
-        if (body.replyUserId) context.query.replyUserId = body.replyUserId;
-      }
-      
-      // フォームデータが空の場合は、リクエストから直接読み取りを試みる
-      if (!context.query.answer && context.req.url) {
-        const bodyBuffer = await new Promise<Buffer>((resolve) => {
-          const bodyChunks: Buffer[] = [];
-          context.req.on('data', (chunk) => bodyChunks.push(chunk));
-          context.req.on('end', () => resolve(Buffer.concat(bodyChunks)));
-        });
-        
-        const rawBody = bodyBuffer.toString();
-        console.log('Raw body:', rawBody);
-        
-        // x-www-form-urlencodedの場合
-        if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
-          const formData = new URLSearchParams(rawBody);
-          if (formData.has('answer')) context.query.answer = formData.get('answer') || '';
-          if (formData.has('quizId')) context.query.quizId = formData.get('quizId') || '';
-          if (formData.has('styleId')) context.query.styleId = formData.get('styleId') || '';
-          if (formData.has('locale')) context.query.lang = formData.get('locale') || '';
-          if (formData.has('quizUserId')) context.query.quizUserId = formData.get('quizUserId') || '';
-          if (formData.has('replyUserId')) context.query.replyUserId = formData.get('replyUserId') || '';
+      // もしミドルウェアが処理しなかった場合、または追加のフィールドが必要な場合は
+      // リクエストから直接読み取りを行う
+      if (!context.query.answer && context.req.headers['content-type']) {
+        try {
+          const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
+            const bodyChunks: Buffer[] = [];
+            
+            context.req.on('data', (chunk: Buffer) => {
+              bodyChunks.push(chunk);
+            });
+            
+            context.req.on('end', () => {
+              resolve(Buffer.concat(bodyChunks));
+            });
+            
+            context.req.on('error', (err) => {
+              reject(err);
+            });
+          });
+          
+          // フォームデータをパース
+          if (context.req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+            const formData = new URLSearchParams(bodyBuffer.toString());
+            console.log('Form data parsed:', Object.fromEntries(formData.entries()));
+            
+            // 必要なパラメータを抽出
+            if (formData.has('answer')) context.query.answer = formData.get('answer') || '';
+            if (formData.has('quizId')) context.query.quizId = formData.get('quizId') || '';
+            if (formData.has('styleId')) context.query.styleId = formData.get('styleId') || '';
+            if (formData.has('locale')) context.query.lang = formData.get('locale') || '';
+            if (formData.has('quizUserId')) context.query.quizUserId = formData.get('quizUserId') || '';
+            if (formData.has('replyUserId')) context.query.replyUserId = formData.get('replyUserId') || '';
+          }
+        } catch (readError) {
+          console.error('Error reading form data:', readError);
         }
       }
       
