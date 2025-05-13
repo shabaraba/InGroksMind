@@ -125,15 +125,6 @@ export default function Home() {
 
     setIsSubmitting(true);
     try {
-      // フォームデータをPOSTリクエストで送信する
-      const formData = new FormData();
-      formData.append('answer', answer);
-      formData.append('quizId', quizId.toString());
-      formData.append('styleId', styleId.toString());
-      formData.append('locale', isJapanese ? 'ja' : 'en');
-      formData.append('quizUserId', quizUser.id.toString());
-      formData.append('replyUserId', replyUser.id.toString());
-
       // 結果ID生成
       const dummyScore = 70; // ダミースコア（実際のスコアはサーバーサイドで計算される）
       const resultId = generateResultId(quizId, styleId, dummyScore);
@@ -141,31 +132,42 @@ export default function Home() {
       // Google Analyticsにイベントを送信
       ga.trackAnswerSubmission(dummyScore, isJapanese ? style.name_ja : style.name_en);
 
-      // 結果ページにPOSTリクエストでフォームを送信
-      // URLSearchParamsオブジェクトを使用してPOSTデータを作成
-      const params = new URLSearchParams();
-      params.append('answer', answer);
-      params.append('quizId', quizId.toString());
-      params.append('styleId', styleId.toString());
-      params.append('locale', isJapanese ? 'ja' : 'en');
-      params.append('quizUserId', quizUser.id.toString());
-      params.append('replyUserId', replyUser.id.toString());
-
-      // 結果ページにリダイレクト
-      // POSTリクエストでリダイレクトするのは難しいので、クライアントサイドで処理する
-      // 隠しフォームを作成して送信する
+      // POSTとGETの両方でデータを渡す方法に変更
+      // URLパスだけを含める（クエリパラメータなし）
+      const path = `/result/${resultId}`;
+      
+      // 2. 詳細なデータはPOSTで送信
+      const formData = new URLSearchParams();
+      formData.append('answer', answer);
+      formData.append('quizId', quizId.toString());
+      formData.append('styleId', styleId.toString());
+      formData.append('locale', isJapanese ? 'ja' : 'en');
+      formData.append('quizUserId', quizUser.id.toString());
+      formData.append('replyUserId', replyUser.id.toString());
+      
+      // 3. POSTリクエストの実行（フォームを直接作成して送信）
       const form = document.createElement('form');
       form.method = 'post';
-      form.action = `/result/${resultId}`;
+      form.action = path;
       
-      // パラメータをフォームに追加
-      for (const [key, value] of params.entries()) {
+      // URLをブラウザの履歴に追加（直接アクセスできるように）
+      window.history.pushState({}, '', path);
+      
+      // FormDataの内容をフォームに追加
+      for (const [key, value] of formData.entries()) {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = key;
         input.value = value;
         form.appendChild(input);
       }
+      
+      // 安全対策として、answerを明示的に追加
+      const answerInput = document.createElement('input');
+      answerInput.type = 'hidden';
+      answerInput.name = 'answer';
+      answerInput.value = answer;
+      form.appendChild(answerInput);
       
       // フォームをDOMに追加して送信
       document.body.appendChild(form);

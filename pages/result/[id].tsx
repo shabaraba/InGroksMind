@@ -395,8 +395,8 @@ const ResultPage: NextPage<ResultPageProps> = ({
 
 // サーバーサイドのデータ取得
 export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
-  // 言語パラメータ取得（リダイレクト用）
-  let langParam = context.query.lang as string;
+  // 言語パラメータのデフォルト設定
+  let langParam = 'en'; // デフォルトを英語に設定
   
   // POSTデータから言語設定を取得（もしPOSTで送信された場合）
   if (context.req.method === 'POST') {
