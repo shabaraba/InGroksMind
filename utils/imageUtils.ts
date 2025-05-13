@@ -491,6 +491,8 @@ export const generateShareText = (
   // URLがある場合はURLつきのテキスト、ない場合はコンパクトなテキスト
   if (url) {
     return t.shareTextWithUrl
+      .replace('{content}', content)
+      .replace('{style}', styleName)
       .replace('{totalScore}', score.toString())
       .replace('{url}', url);
   } else {
