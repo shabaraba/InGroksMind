@@ -3,14 +3,14 @@ import { ResultPageData } from './types';
 
 // 環境変数のチェック
 const hasRedisConfig = 
-  process.env.UPSTASH_REDIS_REST_URL && 
-  process.env.UPSTASH_REDIS_REST_TOKEN;
+  process.env.KV_REST_API_URL && 
+  process.env.KV_REST_API_TOKEN;
 
 // Upstash Redisクライアントの初期化（環境変数が設定されている場合のみ）
 const redis = hasRedisConfig 
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL || '',
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+      url: process.env.KV_REST_API_URL || '',
+      token: process.env.KV_REST_API_TOKEN || '',
     })
   : null;
 
@@ -29,7 +29,7 @@ export const saveResultToKV = async (
   // Redisが設定されていない場合は、ローカルストレージの代わりにデバッグモードで処理
   if (!redis) {
     console.log(`[Development Mode] Would save data for shareId: ${shareId}`);
-    console.log('Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.');
+    console.log('Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.');
     
     // 開発環境では成功を返す
     if (process.env.NODE_ENV === 'development') {
@@ -39,8 +39,9 @@ export const saveResultToKV = async (
   }
   
   try {
-    // データをJSON文字列に変換して保存
-    await redis.set(`result:${shareId}`, JSON.stringify(data), { ex: expirationSeconds });
+    // データを文字列に変換して保存（直接オブジェクトは保存できない）
+    const dataString = JSON.stringify(data);
+    await redis.set(`result:${shareId}`, dataString, { ex: expirationSeconds });
     return true;
   } catch (error) {
     console.error('Error saving result to Upstash Redis:', error);
@@ -57,15 +58,24 @@ export const getResultFromKV = async (shareId: string): Promise<ResultPageData |
   // Redisが設定されていない場合
   if (!redis) {
     console.log(`[Development Mode] Would retrieve data for shareId: ${shareId}`);
-    console.log('Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.');
+    console.log('Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.');
     return null;
   }
   
   try {
-    const data = await redis.get<string>(`result:${shareId}`);
+    const data = await redis.get(`result:${shareId}`);
     if (!data) return null;
     
-    return JSON.parse(data);
+    // データが文字列であることを確認
+    if (typeof data === 'string') {
+      return JSON.parse(data);
+    } else if (typeof data === 'object') {
+      // すでにオブジェクトの場合はそのまま返す（Upstashの挙動に対応）
+      return data;
+    } else {
+      console.error(`Unexpected data type from Redis: ${typeof data}`);
+      return null;
+    }
   } catch (error) {
     console.error('Error retrieving result from Upstash Redis:', error);
     return null;

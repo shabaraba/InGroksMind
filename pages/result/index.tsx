@@ -165,7 +165,8 @@ const ResultPage: NextPage<ResultPageProps> = ({
         styleId,
         answer: userAnswer,
         feedback: feedbackData,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        answerLanguage: isJapanese ? 'ja' : 'en' // 回答時の言語設定を保存
       };
       
       try {
@@ -197,7 +198,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
           // シェアURLを使って新しいシェアテキストを生成
           const updatedShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en', result.shareUrl);
           
-          // Twitterでシェア（シェアURLを含める）
+          // シェアテキストにはすでにURLが含まれているので、URLパラメータは追加しない
           const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(updatedShareText)}`;
           window.open(twitterShareUrl, '_blank');
           return;

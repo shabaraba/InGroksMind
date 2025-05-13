@@ -62,12 +62,15 @@ const SharePage: NextPage<SharePageProps> = ({
   const style = styleVariations.find(s => s.id === styleId) || styleVariations[0];
   const score = feedback.total_score;
 
-  // 初期レンダリング時に言語設定を適用
+  // 初期レンダリング時に言語設定を適用（元の回答言語を優先）
   useEffect(() => {
-    if (locale === 'ja' || locale === 'en') {
+    // 保存された回答言語があればそれを優先する
+    if (resultData?.answerLanguage && (resultData.answerLanguage === 'ja' || resultData.answerLanguage === 'en')) {
+      setLanguage(resultData.answerLanguage);
+    } else if (locale === 'ja' || locale === 'en') {
       setLanguage(locale);
     }
-  }, [locale, setLanguage]);
+  }, [locale, setLanguage, resultData?.answerLanguage]);
 
   // 言語が変更されたときに翻訳も更新
   useEffect(() => {

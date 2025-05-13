@@ -22,8 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Redis設定が存在するか確認
     const hasRedisConfig = 
-      process.env.UPSTASH_REDIS_REST_URL && 
-      process.env.UPSTASH_REDIS_REST_TOKEN;
+      process.env.KV_REST_API_URL && 
+      process.env.KV_REST_API_TOKEN;
     
     // KVストアにデータを保存（開発環境ではモック成功）
     const success = await saveResultToKV(shareId, resultData);
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: true,
         shareId,
         shareUrl,
-        warning: 'Running in development mode without Redis. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for production use.'
+        warning: 'Running in development mode without Redis. Set KV_REST_API_URL and KV_REST_API_TOKEN for production use.'
       });
     }
     
