@@ -192,7 +192,7 @@ export const translations: Translations = {
 export const getTranslation = (): Translation => {
   // サーバーサイドレンダリング時
   if (typeof window === 'undefined') {
-    return translations['en']; // デフォルトは英語
+    return translations['ja']; // デフォルトは日本語
   }
 
   // クライアントサイドでは言語パラメータをチェック
