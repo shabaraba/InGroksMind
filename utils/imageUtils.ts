@@ -59,6 +59,7 @@ export const generateResultUrl = (
   quizUserId?: string,
   replyUserId?: string
 ): string => {
+  // 動的にプロトコルとホストを取得
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}/result/${resultId}`;
 

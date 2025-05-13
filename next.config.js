@@ -10,7 +10,7 @@ const nextConfig = {
   },
   // 環境変数
   env: {
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || ''
   },
   // 静的ファイルのキャッシュ設定
   async headers() {

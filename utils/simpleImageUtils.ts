@@ -13,8 +13,8 @@ export const generateOgImageUrl = (
 ): string => {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const language = locale === 'ja' ? 'ja' : 'en';
-
-  // OG画像URLの生成を静的なファイルに変更（キャッシュを防ぐためにクエリパラメータを追加）
-  // ここでは動的な生成を試みず、直接静的ファイルを返す
-  return `${protocol}://${host}/og-image-home-new.png?v=2`;
+  
+  // 相対パスを使用して、どんな環境でも適切なURLになるようにする
+  // ホストを含む絶対URLではなく相対パスを返す
+  return `/og-image-home-new.png?v=2`;
 };
