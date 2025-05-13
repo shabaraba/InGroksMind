@@ -7,7 +7,7 @@ import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { decodeResultId } from '../../utils/geminiService';
-import { generateResultUrl, generateShareText } from '../../utils/imageUtils';
+import { generateResultUrl, generateShareText } from '../../utils/shareUtils';
 import { generateOgImageUrl } from '../../utils/simpleImageUtils';
 import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
