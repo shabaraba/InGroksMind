@@ -128,25 +128,35 @@ export default function Home() {
       // Google Analyticsにイベントを送信
       ga.trackAnswerSubmission(70, isJapanese ? style.name_ja : style.name_en);
 
-      // GETパラメータでresultページに遷移
-      const encodedAnswer = encodeURIComponent(answer);
-      const locale = isJapanese ? 'ja' : 'en';
+      // ページ遷移先のパス
+      const path = '/result';
       
-      // クエリパラメータを構築
-      const query = {
-        quizId: quizId.toString(),
-        styleId: styleId.toString(),
-        answer: encodedAnswer,
-        lang: locale,
-        quizUserId: quizUser.id.toString(),
-        replyUserId: replyUser.id.toString()
-      };
+      // POSTリクエストの準備
+      const formData = new FormData();
+      formData.append('answer', answer);
+      formData.append('quizId', quizId.toString());
+      formData.append('styleId', styleId.toString());
+      formData.append('locale', isJapanese ? 'ja' : 'en');
+      formData.append('quizUserId', quizUser.id.toString());
+      formData.append('replyUserId', replyUser.id.toString());
       
-      // Next.jsのrouterを使ってページ遷移
-      router.push({
-        pathname: '/result',
-        query
-      });
+      // フォームを動的に作成してPOST送信
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = path;
+      
+      // FormDataの内容をフォームに追加
+      for (const [key, value] of formData.entries()) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value.toString();
+        form.appendChild(input);
+      }
+      
+      // フォームをDOMに追加して送信
+      document.body.appendChild(form);
+      form.submit();
     } catch (error) {
       console.error('Error submitting answer:', error);
       alert(isJapanese ? '回答の評価中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while evaluating your answer. Please try again.');
