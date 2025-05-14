@@ -186,7 +186,7 @@ const SharePage: NextPage<SharePageProps> = ({
               user={replyUser}
               originalUser={quizUser}
               style={style}
-              isJapanese={locale === 'ja'}
+              isJapanese={isJapanese}
               customSeed={`reply-${seedBase}-${styleId}`}
             />
             
