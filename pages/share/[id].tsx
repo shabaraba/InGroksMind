@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { GetServerSideProps, NextPage } from 'next';
-import Head from 'next/head';
+import { NextSeo } from 'next-seo';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { quizData } from '../../data/quizData';
@@ -9,7 +9,6 @@ import { getTranslationForLocale } from '../../i18n/translations';
 import { getResultFromKV } from '../../utils/kvStorage';
 import { ResultPageData, FeedbackData } from '../../utils/types';
 import { generateShareText } from '../../utils/shareUtils';
-import { getTimestampParam } from '../../utils/simpleImageUtils';
 import { LanguageContext } from '../_app';
 import { initializeUsers } from '../../utils/userHelpers';
 import { getGrokUser } from '../../data/virtualUsers';
@@ -128,27 +127,26 @@ const SharePage: NextPage<SharePageProps> = ({
   
   return (
     <div className="min-h-screen bg-twitter-dark">
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={`${content} - ${t.sharedResultView}: ${score}/100`} />
-
-        {/* OGP メタタグ */}
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:site_name" content={t.appTitle} />
-        <meta property="og:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/share/${shareId}`} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content="@from_garage" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
-      </Head>
+      <NextSeo
+        title={pageTitle}
+        description={`${content} - ${t.sharedResultView}: ${score}/100`}
+        openGraph={{
+          title: pageTitle,
+          description: `${content} - ${styleName} (${score}/100)`,
+          url: `https://in-grok-mind.shaba.dev/share/${shareId}`,
+          images: [
+            {
+              url: 'https://in-grok-mind.shaba.dev/og-image-home-new.png',
+              width: 1200,
+              height: 630,
+              alt: `InGrokMind - ${content}`,
+            }
+          ]
+        }}
+        twitter={{
+          cardType: 'summary_large_image',
+        }}
+      />
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center">

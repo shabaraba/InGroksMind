@@ -3,8 +3,9 @@ import { GA_MEASUREMENT_ID } from '../utils/analytics';
 
 export default function Document() {
   return (
-    <Html lang="ja" prefix="og: http://ogp.me/ns#">
+    <Html lang="ja" prefix="og: https://ogp.me/ns#">
       <Head>
+        <meta charSet="utf-8" />
         {/* Google Analytics */}
         {GA_MEASUREMENT_ID && (
           <>
@@ -27,13 +28,7 @@ export default function Document() {
           </>
         )}
 
-        {/* OGP の基本設定 - 詳細は各ページで定義 */}
-        <meta property="og:type" content="website" />
-        <meta property="og:image:type" content="image/png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content="@from_garage" />
+        {/* next-seoで管理されるようになったため、ここでOGP設定は不要 */}
       </Head>
       <body>
         <Main />
