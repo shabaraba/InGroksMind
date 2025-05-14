@@ -508,13 +508,49 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps> = async (co
     // 単純なAPIエンドポイントを使用してOG画像URLを生成
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
 
-    // サーバーサイドでGemini回答を取得
-    const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    // サーバーサイドでGemini回答を取得（エラー発生時はフォールバック）
+    let geminiAnswer;
+    try {
+      geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    } catch (error) {
+      console.error('Failed to get Gemini answer:', error);
+      // getMockGeminiAnswerはプライベート関数なのでインポートできない場合、単純なダミーデータを作成
+      geminiAnswer = {
+        content: locale === 'ja'
+          ? `（API呼び出しエラーのため）これはGeminiの模範解答です。${locale === 'ja' ? quiz.content_ja : quiz.content_en}について、${locale === 'ja' ? style.name_ja : style.name_en}の口調でお答えします。このお題についての正確な情報をご提供します。`
+          : `This is a model answer from Gemini. I'll answer about ${locale === 'ja' ? quiz.content_ja : quiz.content_en} in the style of ${locale === 'ja' ? style.name_ja : style.name_en}. Let me provide you with accurate information about this topic. (API call error occurred)`,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      };
+    }
 
-    // サーバーサイドで回答評価
+    // サーバーサイドで回答評価（エラー発生時はフォールバック）
     let feedbackData;
     if (userAnswer) {
-      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      try {
+        feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      } catch (error) {
+        console.error('Failed to evaluate answer:', error);
+        // ランダムなスコアを生成するモックデータ
+        const accuracyScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+        const styleScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+        const totalScore = accuracyScore + styleScore;
+        
+        feedbackData = {
+          accuracy_score: accuracyScore,
+          accuracy_comment: locale === 'ja' 
+            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
+            : "※An error occurred with API call, showing mock data.",
+          style_score: styleScore,
+          style_comment: locale === 'ja' 
+            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
+            : "※An error occurred with API call, showing mock data.",
+          total_score: totalScore,
+          overall_comment: locale === 'ja' 
+            ? "※注：現在APIの呼び出しに問題があるため、正確な評価ができませんでした。これはデモ表示です。" 
+            : "※Note: Currently API calls are having issues, so we couldn't evaluate accurately. This is a demo display.",
+          gemini_answer: geminiAnswer
+        };
+      }
     } else {
       // 評価結果のみ渡す（フィードバック部分だけを含める）
       const accuracyScore = Math.floor(score / 2);
