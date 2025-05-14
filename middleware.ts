@@ -14,6 +14,8 @@ export default async function middleware(req: NextRequest) {
         const quizId = formData.get('quizId');
         const styleId = formData.get('styleId');
         const locale = formData.get('locale');
+        const quizUserId = formData.get('quizUserId');
+        const replyUserId = formData.get('replyUserId');
         
         // 必要なパラメータがある場合、URLに追加
         if (answer && quizId && styleId) {
@@ -26,6 +28,15 @@ export default async function middleware(req: NextRequest) {
           
           if (locale) {
             url.searchParams.set('lang', locale.toString());
+          }
+          
+          // ユーザーIDも追加（存在する場合）
+          if (quizUserId) {
+            url.searchParams.set('quizUserId', quizUserId.toString());
+          }
+          
+          if (replyUserId) {
+            url.searchParams.set('replyUserId', replyUserId.toString());
           }
           
           // リクエストを続行（必要なデータを含めた状態で）
