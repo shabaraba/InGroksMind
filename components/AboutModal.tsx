@@ -48,7 +48,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             {t.aboutTechnology}
           </h3>
           <div className="flex flex-wrap gap-2 mb-6">
-            {["Next.js", "TypeScript", "TailwindCSS", "Gemini API", "Canvas API", "Netlify"].map((tech) => (
+            {["Next.js", "TypeScript", "TailwindCSS", "Gemini API", "Canvas API", "Vercel"].map((tech) => (
               <span key={tech} className="bg-gray-700 text-white px-2 py-1 rounded text-sm">
                 {tech}
               </span>
