@@ -41,7 +41,6 @@ const Post: React.FC<PostProps> = ({
               <h3 className="font-bold text-white">{user.name || user.name_ja || user.name_en || 'User'}</h3>
               <p className="text-gray-400 text-sm">@{user.username} · {timestamp || t.justNow}</p>
             </div>
-            {/* アイコンは削除 */}
           </div>
           {isReply && replyToUser && (
             <p className="text-gray-400 text-sm mb-1">

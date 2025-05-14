@@ -22,7 +22,6 @@ const ReplyRequest: React.FC<ReplyRequestProps> = ({
 }) => {
   const { language } = useContext(LanguageContext);
   const t = getTranslation();
-  // スタイル名は直接使用するので変数として保持する必要なし
   const [requestText, setRequestText] = useState('');
 
   // 言語変更時にスタイル名とリクエストテキストを更新
@@ -49,7 +48,6 @@ const ReplyRequest: React.FC<ReplyRequestProps> = ({
               <h3 className="font-bold text-white">{user.name || user.name_ja || user.name_en || 'User'}</h3>
               <p className="text-gray-400 text-sm">@{user.username} · {t.justNow}</p>
             </div>
-            {/* アイコンは削除 */}
           </div>
           <p className="text-gray-400 text-sm mb-1">
             {isJapanese ? '返信先:' : 'Replying to:'} <span className="text-twitter-blue">@{originalUser.username}</span>

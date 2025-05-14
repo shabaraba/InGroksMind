@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-og-home": "node scripts/generate-home-og.js",
+    "generate-og-home": "node scripts/generate-home-og-new.js",
     "vercel-deploy": "vercel --prod"
   },
   "dependencies": {

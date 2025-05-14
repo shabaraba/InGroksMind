@@ -32,9 +32,7 @@ const PostInteractions: React.FC<PostInteractionsProps> = ({
   seed = 'default-seed'
 }) => {
   // シード値が与えられた場合は、それを使って一貫した乱数を生成
-  // シード値だけに依存するようにして、コンポーネントの再レンダリング時に値が変わらないようにする
   const counts = useMemo(() => {
-    // 各カウントが明示的に指定されていない場合のみシードベースの乱数値を生成
     return {
       replyCount: replyCount ?? generateSeededRandomNumber(seed, 1, 10, 1),
       repostCount: repostCount ?? generateSeededRandomNumber(seed, 1, 10, 2),

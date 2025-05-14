@@ -94,7 +94,6 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
 
       if (langParam === 'ja' || langParam === 'en') {
         // URLパラメータがある場合は最優先で適用
-        console.log('Setting language from URL:', langParam);
         setLanguage(langParam);
       }
     }
@@ -115,7 +114,6 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
       if (!(langParam === 'ja' || langParam === 'en')) {
         if (pageProps.preferredLanguage === 'ja' || pageProps.preferredLanguage === 'en') {
           // ページPropsから言語設定 (シェアページの場合)
-          console.log('Setting language from page props:', pageProps.preferredLanguage);
           setLanguage(pageProps.preferredLanguage);
         } else {
           // ブラウザ設定を使用（ローカルストレージにない場合のみ）
@@ -126,7 +124,6 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
               const userLang = (navigator.language || (navigator as any).userLanguage || 'en').split('-')[0].toLowerCase(); // 'ja-JP' → 'ja'
               // jaの場合は日本語、それ以外は英語
               const detectedLang = userLang === 'ja' ? 'ja' : 'en';
-              console.log('Setting language from browser:', detectedLang, 'Original:', navigator.language);
               setLanguage(detectedLang);
             }
           } catch (error) {
