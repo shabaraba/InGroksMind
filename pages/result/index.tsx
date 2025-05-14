@@ -166,7 +166,9 @@ const ResultPage: NextPage<ResultPageProps> = ({
         answer: userAnswer,
         feedback: feedbackData,
         timestamp: Date.now(),
-        answerLanguage: isJapanese ? 'ja' : 'en' // 回答時の言語設定を保存
+        answerLanguage: isJapanese ? 'ja' : 'en', // 回答時の言語設定を保存
+        quizUserId: quizUser.id, // クイズユーザーIDを保存
+        replyUserId: replyUser.id // リプライユーザーIDを保存
       };
       
       try {

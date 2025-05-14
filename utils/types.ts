@@ -44,6 +44,8 @@ export interface ResultPageData {
   feedback: FeedbackData;
   timestamp: number;
   answerLanguage?: 'ja' | 'en'; // 回答時の言語設定
+  quizUserId?: number; // クイズを投稿したユーザーID
+  replyUserId?: number; // リプライを要求したユーザーID
 }
 
 // 結果ページのURLパラメータ
