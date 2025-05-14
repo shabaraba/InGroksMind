@@ -18,6 +18,7 @@ export const translations: Translations = {
     // 投稿・リプライ
     today: "今日",
     justNow: "たった今",
+    postedXMinutesAgo: "{minutes}分前",
     userName: "ユーザー",
     factCheckRequest: "ファクトチェックお願い。{style}で回答して",
     yourAnswer: "あなたのGrok回答",
@@ -108,6 +109,7 @@ export const translations: Translations = {
     // Posts & replies
     today: "Today",
     justNow: "Just now",
+    postedXMinutesAgo: "{minutes} mins ago",
     userName: "User",
     factCheckRequest: "Fact check please. Answer in {style} style",
     yourAnswer: "Your Grok Answer",
