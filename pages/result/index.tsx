@@ -289,7 +289,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
               user={replyUser}
               originalUser={quizUser}
               style={style}
-              isJapanese={locale === 'ja'}
+              isJapanese={isJapanese}
               customSeed={`reply-${seedBase}-${styleId}`}
             />
             
@@ -503,9 +503,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const langQuery = `?lang=${locale}`;
 
   try {
-    // ダミースコアの設定（実際の評価はこの後行われる）
-    const score = 70;
-    
     // クイズとスタイルの存在確認
     const quiz = quizData.find(q => q.id === quizId);
     const style = styleVariations.find(s => s.id === styleId);
@@ -522,7 +519,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // ホスト名取得
     const host = context.req.headers.host || 'localhost:3000';
     
-    // 単純なAPIエンドポイントを使用してOG画像URLを生成
+    // ユーザー回答が無い場合はホームにリダイレクト
+    if (!userAnswer) {
+      return {
+        redirect: {
+          destination: `/${langQuery}`,
+          permanent: false,
+        },
+      };
+    }
+    
+    // クイズとスタイルの内容（ローカル変数）
+    const quizContent = locale === 'ja' ? quiz.content_ja : quiz.content_en;
+    const styleText = locale === 'ja' ? style.name_ja : style.name_en;
     
     // サーバーサイドでGemini回答を取得（エラー発生時はフォールバック）
     let geminiAnswer;
@@ -530,20 +539,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
     } catch (error) {
       console.error('Failed to get Gemini answer:', error);
-      // getMockGeminiAnswerはプライベート関数なのでインポートできない場合、単純なダミーデータを作成
-      // ローカル変数で内容を生成（型エラーを防ぐため）
-      const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
-      const styleName = locale === 'ja' ? style.name_ja : style.name_en;
-      
+      // エラーが発生した場合はモックデータを使用
       geminiAnswer = {
         content: locale === 'ja'
-          ? `（API呼び出しエラーのため）これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
-          : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic. (API call error occurred)`,
+          ? `※APIエラーのため、モックデータを表示しています。${quizContent}について、${styleText}スタイルで回答します。`
+          : `※Showing mock data due to API error. Answering about ${quizContent} in ${styleText} style.`,
         avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
       };
     }
 
-    // 参考回答の取得
+    // 参考回答の取得は必須ではないので、エラーが発生しても続行
     try {
       await getGeminiReferenceAnswerServer(quiz, style, locale);
     } catch (error) {
@@ -552,63 +557,51 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // サーバーサイドで回答評価（エラー発生時はフォールバック）
     let feedbackData;
-    if (userAnswer) {
-      try {
-        feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
-      } catch (error) {
-        console.error('Failed to evaluate answer:', error);
-        // ランダムなスコアを生成するモックデータ
-        const accuracyScore = Math.floor(Math.random() * 30) + 20; // 20-50点
-        const styleScore = Math.floor(Math.random() * 30) + 20; // 20-50点
-        const totalScore = accuracyScore + styleScore;
-        
-        feedbackData = {
-          accuracy_score: accuracyScore,
-          accuracy_comment: locale === 'ja' 
-            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
-            : "※An error occurred with API call, showing mock data.",
-          style_score: styleScore,
-          style_comment: locale === 'ja' 
-            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
-            : "※An error occurred with API call, showing mock data.",
-          total_score: totalScore,
-          overall_comment: locale === 'ja' 
-            ? "※注：現在APIの呼び出しに問題があるため、正確な評価ができませんでした。これはデモ表示です。" 
-            : "※Note: Currently API calls are having issues, so we couldn't evaluate accurately. This is a demo display.",
-          gemini_answer: geminiAnswer
-        };
-      }
-    } else {
-      // 評価結果のみ渡す（フィードバック部分だけを含める）
-      const accuracyScore = Math.floor(score / 2);
-      const styleScore = score - accuracyScore;
-
+    let resultScore = 0;
+    
+    try {
+      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      resultScore = feedbackData.total_score;
+    } catch (error) {
+      console.error('Failed to evaluate answer:', error);
+      
+      // エラーが発生した場合はモックのフィードバックを生成
+      const errorMessage = locale === 'ja'
+        ? '※APIエラーのため、モックのフィードバックを表示しています。'
+        : '※Showing mock feedback due to API error.';
+      
+      // ランダムなスコアを生成するモックデータ
+      const accuracyScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+      const styleScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+      const totalScore = accuracyScore + styleScore;
+      
       feedbackData = {
         accuracy_score: accuracyScore,
-        accuracy_comment: accuracyScore >= 40 ?
-          (locale === 'ja' ? "非常に正確な情報提供です。" : "Highly accurate information.") :
-          (locale === 'ja' ? "情報の正確性は平均的です。" : "Information accuracy is average."),
+        accuracy_comment: locale === 'ja'
+          ? `${errorMessage} 内容の正確性は平均的です。`
+          : `${errorMessage} The accuracy is average.`,
         style_score: styleScore,
-        style_comment: styleScore >= 40 ?
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をよく捉えています。` : `You've captured the characteristics of "${style.name_en}" style well.`) :
-          (locale === 'ja' ? `「${style.name_ja}」の特徴をある程度再現しています。` : `You've somewhat reproduced the "${style.name_en}" style.`),
-        total_score: score,
-        overall_comment: score >= 80 ?
-          (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
-          (locale === 'ja' ? "良い回答です。" : "Good answer."),
+        style_comment: locale === 'ja'
+          ? `${errorMessage} スタイルの模倣は部分的にできています。`
+          : `${errorMessage} The style imitation is partially accomplished.`,
+        total_score: totalScore,
+        overall_comment: locale === 'ja'
+          ? `${errorMessage} 全体的には可もなく不可もない回答です。`
+          : `${errorMessage} Overall, this is a mediocre answer.`,
         gemini_answer: geminiAnswer
       };
+      
+      resultScore = totalScore; // モックのスコア
     }
 
     // 実際のスコアをOG画像のURL生成に使用
-    const actualScore = feedbackData.total_score;
-    const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale);
+    const ogImageUrl = generateOgImageUrl(quizId, styleId, resultScore, locale);
 
     // 結果ページURL生成 - 一時的なダミーURL（実際のシェアURLはAPI経由で生成）
     const resultUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.shaba.dev'}/result`;
 
     // シェアテキスト生成
-    const shareText = generateShareText(quiz, style, score, locale, resultUrl);
+    const shareText = generateShareText(quiz, style, resultScore, locale, resultUrl);
 
     // シェアからの訪問判定
     const referer = context.req.headers.referer || '';
@@ -621,7 +614,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       props: {
         quizId,
         styleId,
-        score,
+        score: resultScore,
         userAnswer,
         locale,
         ogImageUrl,
