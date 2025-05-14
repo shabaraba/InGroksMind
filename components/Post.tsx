@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { VirtualUser } from '../data/virtualUsers';
 import { getTranslation } from '../i18n/translations';
 import { LanguageContext } from '../pages/_app';

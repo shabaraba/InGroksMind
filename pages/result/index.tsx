@@ -6,10 +6,9 @@ import { useRouter } from 'next/router';
 import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
-import { decodeResultId } from '../../utils/geminiService';
-import { generateResultUrl, generateShareText } from '../../utils/shareUtils';
+import { generateShareText } from '../../utils/shareUtils';
 import { generateOgImageUrl } from '../../utils/simpleImageUtils';
-import { FeedbackData, ResultPageParams, GeminiAnswer } from '../../utils/types';
+import { FeedbackData, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
 import { getGrokUser } from '../../data/virtualUsers';
@@ -26,7 +25,6 @@ import * as ga from '../../utils/analytics';
 
 // 結果ページのプロパティ
 interface ResultPageProps {
-  resultId: string;
   quizId: number;
   styleId: number;
   score: number;
@@ -41,7 +39,6 @@ interface ResultPageProps {
 
 // 結果ページコンポーネント
 const ResultPage: NextPage<ResultPageProps> = ({
-  resultId,
   quizId,
   styleId,
   score,
@@ -123,8 +120,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [t, score, isSharedView]);
   
+  // 一意のシードを生成（タイムスタンプベース、シェア時に本当のIDが生成される）
+  const seedBase = `result-${Date.now()}`;
+  
   // ユーザー情報の初期化
-  const initialUsers = initializeUsers(resultId, quizId, isJapanese, quizUserId, replyUserId);
+  const initialUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
   const [quizUser, setQuizUser] = useState(initialUsers[0]);
   const [replyUser, setReplyUser] = useState(initialUsers[1]);
   const [currentGrokUser, setCurrentGrokUser] = useState(getGrokUser(isJapanese));
@@ -136,11 +136,11 @@ const ResultPage: NextPage<ResultPageProps> = ({
   // 言語が変更されたときにユーザー名を更新
   useEffect(() => {
     // 言語に合わせてユーザー情報を更新
-    const updatedUsers = initializeUsers(resultId, quizId, isJapanese, quizUserId, replyUserId);
+    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
     setQuizUser(updatedUsers[0]);
     setReplyUser(updatedUsers[1]);
     setCurrentGrokUser(getGrokUser(isJapanese));
-  }, [isJapanese, resultId, quizId, quizUserId, replyUserId]);
+  }, [isJapanese, seedBase, quizId, quizUserId, replyUserId]);
 
   // 評価結果表示後、3秒後に「1件のポストを表示」ボタンを表示（シェア訪問時は表示しない）
   useEffect(() => {
@@ -154,11 +154,79 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [feedbackData.gemini_answer, isSharedView]);
   
-  // Xでシェアする
-  const handleShare = () => {
+  // シェアボタン押下時にKVに結果を保存してからシェアする
+  const handleShare = async () => {
     ga.trackShareResult(score, 'twitter');
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-    window.open(twitterShareUrl, '_blank');
+    
+    try {
+      // シェア用のデータを準備（このタイミングでだけ保存する）
+      const resultData = {
+        quizId,
+        styleId,
+        answer: userAnswer,
+        feedback: feedbackData,
+        timestamp: Date.now(),
+        answerLanguage: isJapanese ? 'ja' : 'en' // 回答時の言語設定を保存
+      };
+      
+      try {
+        // API経由でデータを保存し、シェアID/URLを取得
+        const response = await fetch('/api/save-result', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(resultData),
+        });
+        
+        // レスポンスをJSONとして解析
+        const result = await response.json();
+        
+        if (result.success && result.shareUrl) {
+          // 正常に処理された場合
+          
+          // シェアURLをクリップボードにコピー（サポートされている場合）
+          try {
+            if (navigator.clipboard) {
+              await navigator.clipboard.writeText(result.shareUrl);
+              alert(isJapanese ? 'シェアURLがクリップボードにコピーされました' : 'Share URL has been copied to clipboard');
+            }
+          } catch (clipboardError) {
+            console.error('Error copying to clipboard:', clipboardError);
+          }
+          
+          // シェアURLを使って新しいシェアテキストを生成
+          const updatedShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en', result.shareUrl);
+          
+          // シェアテキストにはすでにURLが含まれているので、URLパラメータは追加しない
+          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(updatedShareText)}`;
+          window.open(twitterShareUrl, '_blank');
+          return;
+        }
+        
+        // Redisが設定されていない場合や他のエラーの場合は従来のシェア方法を使用
+        console.warn('Falling back to traditional sharing method:', result);
+        // URLなしのシェアテキストを生成（コンパクト版）
+        const fallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fallbackShareText)}`;
+        window.open(twitterShareUrl, '_blank');
+        
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        // APIエラーの場合は従来のシェア方法を使用（URLなし）
+        const fallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fallbackShareText)}`;
+        window.open(twitterShareUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error in share handling:', error);
+      
+      // エラーが発生した場合はユーザーに通知し、従来のシェア方法を使用
+      alert(isJapanese ? 'シェアの準備中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while preparing to share. Please try again.');
+      const finalFallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(finalFallbackShareText)}`;
+      window.open(twitterShareUrl, '_blank');
+    }
   };
   
   return (
@@ -217,7 +285,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
             <Post
               user={quizUser}
               content={content}
-              postId={`quiz-${resultId}-${quizId}`}
+              postId={`quiz-${seedBase}-${quizId}`}
             />
             
             {/* Grokへのリプライリクエスト */}
@@ -226,7 +294,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
               originalUser={quizUser}
               style={style}
               isJapanese={locale === 'ja'}
-              customSeed={`reply-${resultId}-${styleId}`}
+              customSeed={`reply-${seedBase}-${styleId}`}
             />
             
             {/* Grokの回答 */}
@@ -254,13 +322,13 @@ const ResultPage: NextPage<ResultPageProps> = ({
                     {userAnswer}
                   </div>
 
-                  <PostInteractions seed={`grok-${resultId}`} />
+                  <PostInteractions seed={`grok-${seedBase}`} />
                 </div>
               </div>
             </div>
 
             {/* Geminiの評価 */}
-            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={resultId} />
+            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={seedBase} />
 
             {/* 参考回答を表示するボタン */}
             {feedbackData.gemini_answer && showShowMoreButton && !showReferencePost && (
@@ -268,7 +336,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
                 onClick={() => setShowReferencePost(true)}
                 className="w-full py-2 text-twitter-blue hover:bg-gray-800/50 transition-colors border-t border-b border-gray-700 font-medium text-sm"
               >
-                {isJapanese ? '2件のポストを表示' : 'Show 2 posts'}
+                {isJapanese ? '1件のポストを表示' : 'Show 1 post'}
               </button>
             )}
 
@@ -276,20 +344,9 @@ const ResultPage: NextPage<ResultPageProps> = ({
             {feedbackData.gemini_answer && showReferencePost && (
               <GeminiAnswerDisplay
                 geminiAnswer={feedbackData.gemini_answer}
-                resultId={resultId}
+                resultId={seedBase}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
-              />
-            )}
-
-            {/* Geminiの参考回答表示 */}
-            {feedbackData.gemini_reference_answer && showReferencePost && (
-              <GeminiAnswerDisplay
-                geminiAnswer={feedbackData.gemini_reference_answer}
-                resultId={resultId}
-                locale={isJapanese ? 'ja' : 'en'}
-                t={t}
-                isReference={true}
               />
             )}
 
@@ -345,48 +402,92 @@ const ResultPage: NextPage<ResultPageProps> = ({
 };
 
 // サーバーサイドのデータ取得
-export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageParams> = async (context) => {
-  // 言語パラメータ取得（リダイレクト用）
-  const langParam = context.query.lang as string;
-  const locale = langParam === 'ja' ? 'ja' : (langParam === 'en' ? 'en' : (context.locale || 'en'));
-  const langQuery = locale ? `?lang=${locale}` : '';
-
-  // IDを取得
-  const { id } = context.params || {};
-  if (!id) {
-    // 存在しないIDの場合はホームにリダイレクト
+export const getServerSideProps: GetServerSideProps<ResultPageProps> = async (context) => {
+  // 言語パラメータのデフォルト設定
+  let langParam = 'en'; // デフォルトを英語に設定
+  let quizId = 1;
+  let styleId = 1;
+  let userAnswer = '';
+  let quizUserId = '1';
+  let replyUserId = '2';
+  
+  // POSTリクエストの場合のみ処理
+  if (context.req.method === 'POST') {
+    try {
+      // POSTデータを取得
+      let formData: URLSearchParams | null = null;
+      
+      if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+        try {
+          const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
+            const bodyChunks: Buffer[] = [];
+            
+            context.req.on('data', (chunk: Buffer) => {
+              bodyChunks.push(chunk);
+            });
+            
+            context.req.on('end', () => {
+              resolve(Buffer.concat(bodyChunks));
+            });
+            
+            context.req.on('error', (err) => {
+              reject(err);
+            });
+          });
+          
+          // フォームデータをパース
+          formData = new URLSearchParams(bodyBuffer.toString());
+          console.log('Form data parsed:', Object.fromEntries(formData.entries()));
+          
+          // 言語設定を取得
+          if (formData.has('locale')) {
+            langParam = formData.get('locale') || langParam;
+          }
+          
+          // その他の必要なデータを取得
+          if (formData.has('quizId')) {
+            quizId = parseInt(formData.get('quizId') || '1', 10);
+          }
+          
+          if (formData.has('styleId')) {
+            styleId = parseInt(formData.get('styleId') || '1', 10);
+          }
+          
+          if (formData.has('answer')) {
+            userAnswer = formData.get('answer') || '';
+          }
+          
+          if (formData.has('quizUserId')) {
+            quizUserId = formData.get('quizUserId') || '1';
+          }
+          
+          if (formData.has('replyUserId')) {
+            replyUserId = formData.get('replyUserId') || '2';
+          }
+        } catch (readError) {
+          console.error('Error reading form data:', readError);
+        }
+      }
+    } catch (error) {
+      console.error('Error extracting data from POST:', error);
+    }
+  } else {
+    // POSTリクエストでない場合はホームにリダイレクト
     return {
       redirect: {
-        destination: `/${langQuery}`,
+        destination: '/',
         permanent: false,
       },
     };
   }
-
-  // 圧縮されたクエリパラメータがあれば展開
-  const compressedData = context.query.c as string;
-  if (compressedData) {
-    const params = expandUrlParams(compressedData);
-    params.forEach((value, key) => { context.query[key] = value; });
-  }
-
-  // ユーザーの回答を取得
-  const userAnswer = context.query.answer as string || "この質問に対する私の回答です...";
+  
+  // 明示的に 'ja' または 'en' のみを許可
+  const locale = langParam === 'ja' ? 'ja' : 'en';
+  const langQuery = `?lang=${locale}`;
 
   try {
-    // IDからクイズID, スタイルID, スコアを抽出
-    const resultData = decodeResultId(id);
-    if (!resultData) {
-      // 無効なIDの場合はホームにリダイレクト
-      return {
-        redirect: {
-          destination: `/${langQuery}`,
-          permanent: false,
-        },
-      };
-    }
-
-    const { quizId, styleId, score } = resultData;
+    // ダミースコアの設定（実際の評価はこの後行われる）
+    const score = 70;
     
     // クイズとスタイルの存在確認
     const quiz = quizData.find(q => q.id === quizId);
@@ -407,18 +508,53 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     // 単純なAPIエンドポイントを使用してOG画像URLを生成
     // Netlify Functionsや依存関係が必要なライブラリを使わないシンプルな実装
 
-    // サーバーサイドでGemini回答を取得
-    const geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    // サーバーサイドでGemini回答を取得（エラー発生時はフォールバック）
+    let geminiAnswer;
+    try {
+      geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
+    } catch (error) {
+      console.error('Failed to get Gemini answer:', error);
+      // getMockGeminiAnswerはプライベート関数なのでインポートできない場合、単純なダミーデータを作成
+      // ローカル変数で内容を生成（型エラーを防ぐため）
+      const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
+      const styleName = locale === 'ja' ? style.name_ja : style.name_en;
+      
+      geminiAnswer = {
+        content: locale === 'ja'
+          ? `（API呼び出しエラーのため）これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
+          : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic. (API call error occurred)`,
+        avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
+      };
+    }
 
-    // サーバーサイドでGemini参考回答を取得
-    const geminiReferenceAnswer = await getGeminiReferenceAnswerServer(quiz, style, locale);
-
-    // サーバーサイドで回答評価
+    // サーバーサイドで回答評価（エラー発生時はフォールバック）
     let feedbackData;
     if (userAnswer) {
-      feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
-      // 参考回答を追加
-      feedbackData.gemini_reference_answer = geminiReferenceAnswer;
+      try {
+        feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
+      } catch (error) {
+        console.error('Failed to evaluate answer:', error);
+        // ランダムなスコアを生成するモックデータ
+        const accuracyScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+        const styleScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+        const totalScore = accuracyScore + styleScore;
+        
+        feedbackData = {
+          accuracy_score: accuracyScore,
+          accuracy_comment: locale === 'ja' 
+            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
+            : "※An error occurred with API call, showing mock data.",
+          style_score: styleScore,
+          style_comment: locale === 'ja' 
+            ? "※API呼び出しエラーが発生したため、モックデータを表示しています。" 
+            : "※An error occurred with API call, showing mock data.",
+          total_score: totalScore,
+          overall_comment: locale === 'ja' 
+            ? "※注：現在APIの呼び出しに問題があるため、正確な評価ができませんでした。これはデモ表示です。" 
+            : "※Note: Currently API calls are having issues, so we couldn't evaluate accurately. This is a demo display.",
+          gemini_answer: geminiAnswer
+        };
+      }
     } else {
       // 評価結果のみ渡す（フィードバック部分だけを含める）
       const accuracyScore = Math.floor(score / 2);
@@ -437,8 +573,7 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
         overall_comment: score >= 80 ?
           (locale === 'ja' ? "素晴らしい回答です！" : "Excellent answer!") :
           (locale === 'ja' ? "良い回答です。" : "Good answer."),
-        gemini_answer: geminiAnswer,
-        gemini_reference_answer: geminiReferenceAnswer
+        gemini_answer: geminiAnswer
       };
     }
 
@@ -446,12 +581,8 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
     const actualScore = feedbackData.total_score;
     const ogImageUrl = generateOgImageUrl(quizId, styleId, actualScore, locale, host);
 
-    // 結果ページURL生成
-    const resultUrl = generateResultUrl(
-      id, host, userAnswer, locale,
-      context.query.quizUserId as string,
-      context.query.replyUserId as string
-    );
+    // 結果ページURL生成 - 一時的なダミーURL（実際のシェアURLはAPI経由で生成）
+    const resultUrl = `${process.env.NEXT_PUBLIC_SITE_URL || `${host.includes('localhost') ? 'http' : 'https'}://${host}`}/result`;
 
     // シェアテキスト生成
     const shareText = generateShareText(quiz, style, score, locale, resultUrl);
@@ -465,7 +596,6 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps, ResultPageP
 
     return {
       props: {
-        resultId: id,
         quizId,
         styleId,
         score,

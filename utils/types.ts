@@ -43,6 +43,7 @@ export interface ResultPageData {
   answer: string;
   feedback: FeedbackData;
   timestamp: number;
+  answerLanguage?: 'ja' | 'en'; // 回答時の言語設定
 }
 
 // 結果ページのURLパラメータ
