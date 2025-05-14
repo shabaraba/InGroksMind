@@ -4,7 +4,7 @@ import path from 'path';
 
 /**
  * トップページ用動的OG画像API
- * Netlifyでのビルドエラーを回避するため、静的な画像を返すように変更
+ * 静的な画像を返すシンプルな実装
  */
 export default async function handler(
   req: NextApiRequest,

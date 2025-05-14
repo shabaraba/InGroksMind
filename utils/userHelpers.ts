@@ -20,14 +20,23 @@ const USER_PAIRS = [
   [5, 1]  // IDが5と1のユーザー
 ];
 
-// resultIdを使って決定的に2人のユーザーを選択
+// resultIdを使って決定的に2人のユーザーを選択（常に異なるユーザーを返す）
 export const selectDistinctUsers = (resultId: string, isJapanese: boolean): [VirtualUser, VirtualUser] => {
   const pairIndex = Math.abs(hashString(resultId)) % USER_PAIRS.length;
   const selectedPair = USER_PAIRS[pairIndex];
+  
+  // ペア内で同じIDが選ばれることがないよう確認（安全策）
+  let userId1 = selectedPair[0];
+  let userId2 = selectedPair[1];
+  
+  // 万が一同じIDの場合は2番目のIDを変更
+  if (userId1 === userId2) {
+    userId2 = (userId2 % virtualUsers.length) + 1;
+  }
 
   // 選択したペアのIDに対応するユーザーを取得
-  const user1 = { ...virtualUsers.find(user => user.id === selectedPair[0])! };
-  const user2 = { ...virtualUsers.find(user => user.id === selectedPair[1])! };
+  const user1 = { ...virtualUsers.find(user => user.id === userId1)! };
+  const user2 = { ...virtualUsers.find(user => user.id === userId2)! };
 
   // 言語に合わせて名前を設定
   user1.name = isJapanese ? user1.name_ja : user1.name_en;
@@ -41,6 +50,14 @@ export const generateConsistentUserIds = (resultId: string, quizId: number): [nu
   const hash = hashString(resultId + quizId.toString());
   const pairIndex = hash % USER_PAIRS.length;
   const selectedPair = USER_PAIRS[pairIndex];
+  
+  // 安全のため、ペア内で同じIDが選ばれていないことを確認
+  if (selectedPair[0] === selectedPair[1]) {
+    // この場合、2番目のIDを変更する（範囲内でインクリメント）
+    const nextId = (selectedPair[1] % virtualUsers.length) + 1;
+    return [selectedPair[0], nextId];
+  }
+  
   return [selectedPair[0], selectedPair[1]]; // 明示的なタプル配列を返す
 };
 
@@ -64,9 +81,16 @@ export const resolveUserIds = (
   quizUserId?: number,
   replyUserId?: number
 ): [number, number] => {
-  if (quizUserId && replyUserId && quizUserId > 0 && replyUserId > 0 && quizUserId !== replyUserId) {
-    // URLパラメータ経由で渡されたIDがあり、かつ重複していない場合
-    return [quizUserId, replyUserId];
+  if (quizUserId && replyUserId && quizUserId > 0 && replyUserId > 0) {
+    // URLパラメータ経由で渡されたIDがあり
+    if (quizUserId !== replyUserId) {
+      // かつ重複していない場合はそのまま返す
+      return [quizUserId, replyUserId];
+    } else {
+      // 重複している場合は、replyUserIdを別のIDに変更する（範囲内でインクリメント）
+      const nextReplyId = (replyUserId % virtualUsers.length) + 1;
+      return [quizUserId, nextReplyId];
+    }
   } else {
     // それ以外の場合は決定的に生成されたペアを使用
     return generateConsistentUserIds(resultId, quizId);

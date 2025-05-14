@@ -18,11 +18,12 @@ import Post from '../../components/Post';
 import ReplyRequest from '../../components/ReplyRequest';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import AboutModal from '../../components/AboutModal';
+import PostInteractions from '../../components/PostInteractions';
 import GeminiAnswerDisplay from '../../components/GeminiAnswerDisplay';
 import GeminiFeedback from '../../components/GeminiFeedback';
-import PostInteractions from '../../components/PostInteractions';
 import * as ga from '../../utils/analytics';
 
+// 結果ページのプロパティ
 interface ResultPageProps {
   quizId: number;
   styleId: number;
@@ -32,10 +33,11 @@ interface ResultPageProps {
   ogImageUrl: string;
   resultUrl: string;
   shareText: string;
-  isSharedView: boolean;
-  feedbackData: FeedbackData;
+  isSharedView: boolean; // シェアから訪問したかどうかのフラグ
+  feedbackData: FeedbackData; // サーバーサイドで生成したフィードバックデータ
 }
 
+// 結果ページコンポーネント
 const ResultPage: NextPage<ResultPageProps> = ({
   quizId,
   styleId,
@@ -68,39 +70,83 @@ const ResultPage: NextPage<ResultPageProps> = ({
     }
   }, [locale, setLanguage]);
 
-  // ユーザーアバターと投稿内容
-  const seedBase = `${quizId}-${styleId}`;
-  const initialUsers = initializeUsers(seedBase, quizId, isJapanese);
+  // ページ読み込み後、少し遅れてGrok回答の少し上にスクロール（シェアからの訪問時はスクロールしない）
+  useEffect(() => {
+    // シェアURLからの訪問の場合はスクロールしない
+    if (!isSharedView && grokAnswerRef.current) {
+      const timer = setTimeout(() => {
+        // Grok回答の位置を取得
+        const grokElement = grokAnswerRef.current;
+        if (!grokElement) return;
+
+        const rect = grokElement.getBoundingClientRect();
+
+        // 一つ前のポストの下部が少し見えるよう、上方向に少しオフセット
+        const scrollPosition = window.scrollY + rect.top - 80;
+
+        // スムーズにスクロール
+        window.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSharedView]);
+
+  // 言語が変更されたときに翻訳も更新
+  useEffect(() => {
+    setT(getTranslationForLocale(isJapanese ? 'ja' : 'en'));
+  }, [isJapanese]);
+  
+  // 言語に応じたコンテンツを取得
+  const [content, setContent] = useState('');
+  const [styleName, setStyleName] = useState('');
+
+  // 言語が変更されたときにコンテンツを更新
+  useEffect(() => {
+    setContent(isJapanese ? quiz.content_ja : quiz.content_en);
+    setStyleName(isJapanese ? style.name_ja : style.name_en);
+  }, [isJapanese, quiz, style]);
+  
+  // ページタイトル（言語変更時と表示モードで更新）
+  const [pageTitle, setPageTitle] = useState('');
+  useEffect(() => {
+    if (isSharedView) {
+      setPageTitle(`${t.appTitle} - ${t.sharedResultView} (${score}/100)`);
+    } else {
+      setPageTitle(`${t.appTitle} - ${t.resultTitle} (${score}/100)`);
+    }
+  }, [t, score, isSharedView]);
+  
+  // 一意のシードを生成（タイムスタンプベース、シェア時に本当のIDが生成される）
+  const seedBase = `result-${Date.now()}`;
+  
+  // ユーザー情報の初期化
+  const initialUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
   const [quizUser, setQuizUser] = useState(initialUsers[0]);
   const [replyUser, setReplyUser] = useState(initialUsers[1]);
   const [currentGrokUser, setCurrentGrokUser] = useState(getGrokUser(isJapanese));
-  const [showReferencePost, setShowReferencePost] = useState(false);
+  // シェアURL(isSharedView=true)からの訪問時は参考ポストを最初から表示
+  const [showReferencePost, setShowReferencePost] = useState(isSharedView);
   const [showShowMoreButton, setShowShowMoreButton] = useState(false);
+  const grokAnswerRef = useRef<HTMLDivElement>(null);
 
-  // 表示するコンテンツの準備
-  const content = isJapanese ? quiz.content_ja : quiz.content_en;
-  const styleName = isJapanese ? style.name_ja : style.name_en;
-  const pageTitle = `${t.resultTitle}: ${score}/100 - ${content}`;
-
-  // 言語切り替え時の処理
+  // 言語が変更されたときにユーザー名を更新
   useEffect(() => {
-    setT(getTranslationForLocale(isJapanese ? 'ja' : 'en'));
-    
     // 言語に合わせてユーザー情報を更新
-    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese);
+    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese, quizUserId, replyUserId);
     setQuizUser(updatedUsers[0]);
     setReplyUser(updatedUsers[1]);
     setCurrentGrokUser(getGrokUser(isJapanese));
-  }, [isJapanese, seedBase, quizId]);
+  }, [isJapanese, seedBase, quizId, quizUserId, replyUserId]);
 
-  // ドキュメント参照用のref
-  const grokAnswerRef = useRef<HTMLDivElement>(null);
-
-  // シェアされた結果ページ表示時に、遅延ロードで参考回答を表示
+  // 評価結果表示後、3秒後に「1件のポストを表示」ボタンを表示（シェア訪問時は表示しない）
   useEffect(() => {
-    if (feedbackData.gemini_answer && isSharedView) {
+    // シェアからの訪問でない場合のみ、ボタン表示のタイマーを設定
+    if (feedbackData.gemini_answer && !isSharedView) {
       const timer = setTimeout(() => {
-        setShowReferencePost(true);
         setShowShowMoreButton(true);
       }, 3000);
 
@@ -124,7 +170,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
       };
       
       try {
-        // データをKVに保存（すでに保存されている場合は再利用）
+        // API経由でデータを保存し、シェアID/URLを取得
         const response = await fetch('/api/save-result', {
           method: 'POST',
           headers: {
@@ -133,20 +179,37 @@ const ResultPage: NextPage<ResultPageProps> = ({
           body: JSON.stringify(resultData),
         });
         
-        const data = await response.json();
+        // レスポンスをJSONとして解析
+        const result = await response.json();
         
-        if (data.id) {
-          // シェアテキストを生成
-          const tweetText = isJapanese
-            ? `InGrokMindで「${content}」について「${styleName}」スタイルで回答してみました！スコア: ${score}/100 ${t.checkMyAnswer} ${process.env.NEXT_PUBLIC_SITE_URL}/share/${data.id}`
-            : `I answered about "${content}" in "${styleName}" style on InGrokMind! Score: ${score}/100 ${t.checkMyAnswer} ${process.env.NEXT_PUBLIC_SITE_URL}/share/${data.id}`;
+        if (result.success && result.shareUrl) {
+          // 正常に処理された場合
           
-          // Twitterシェアのリンクを生成して開く
-          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+          // シェアURLをクリップボードにコピー（サポートされている場合）
+          try {
+            if (navigator.clipboard) {
+              await navigator.clipboard.writeText(result.shareUrl);
+              alert(isJapanese ? 'シェアURLがクリップボードにコピーされました' : 'Share URL has been copied to clipboard');
+            }
+          } catch (clipboardError) {
+            console.error('Error copying to clipboard:', clipboardError);
+          }
+          
+          // シェアURLを使って新しいシェアテキストを生成
+          const updatedShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en', result.shareUrl);
+          
+          // シェアテキストにはすでにURLが含まれているので、URLパラメータは追加しない
+          const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(updatedShareText)}`;
           window.open(twitterShareUrl, '_blank');
-        } else {
-          throw new Error('Invalid response from save-result API');
+          return;
         }
+        
+        // Redisが設定されていない場合や他のエラーの場合は従来のシェア方法を使用
+        console.warn('Falling back to traditional sharing method:', result);
+        // URLなしのシェアテキストを生成（コンパクト版）
+        const fallbackShareText = generateShareText(quiz, style, score, isJapanese ? 'ja' : 'en');
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fallbackShareText)}`;
+        window.open(twitterShareUrl, '_blank');
         
       } catch (apiError) {
         console.error('API error:', apiError);
@@ -196,57 +259,40 @@ const ResultPage: NextPage<ResultPageProps> = ({
             </Link>
           </h1>
           <div className="flex items-center space-x-4">
-            <LanguageSwitcher />
             <button
-              className="text-white hover:text-blue-300 transition-colors"
               onClick={() => setIsAboutOpen(true)}
+              className="text-gray-300 hover:text-white transition-colors"
             >
               {t.about}
             </button>
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto p-4">
-        <div className="mb-8">
-          <div className="mb-4 text-center">
-            <h2 className="text-white text-2xl font-bold mb-2">{isSharedView ? t.sharedResultView : t.resultTitle}</h2>
-            <p className="text-gray-300">
-              {isJapanese
-                ? `「${content}」について「${styleName}」スタイルで回答`
-                : `Answered about "${content}" in "${styleName}" style`}
-            </p>
-          </div>
+      <main className="container mx-auto py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-white mb-6">
+            {isSharedView ? t.sharedResultView : t.resultTitle}
+          </h2>
 
-          <div className="flex justify-center mb-8">
-            <div className="w-full max-w-md bg-gray-800 rounded-full h-6">
-              <div
-                className={`h-6 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                style={{ width: `${score}%` }}
-              ></div>
-            </div>
-            <div className="text-white font-bold text-xl ml-4">{score}/100</div>
-          </div>
-
-          <div className="bg-twitter-dark-post rounded-xl overflow-hidden mb-6">
-            {/* 質問ポスト */}
-            <Post 
+          <div className="bg-twitter-darker rounded-lg border border-gray-700 overflow-hidden mb-8">
+            {/* 元の投稿 */}
+            <Post
               user={quizUser}
               content={content}
-              timestamp={t.postedXMinutesAgo.replace('{minutes}', '45')}
-              className="border-b border-gray-700"
-              postId={`quiz-${quizId}`}
+              postId={`quiz-${seedBase}-${quizId}`}
             />
-
-            {/* Grokへの回答リクエストポスト */}
+            
+            {/* Grokへのリプライリクエスト */}
             <ReplyRequest
               user={replyUser}
               originalUser={quizUser}
               style={style}
               isJapanese={isJapanese}
-              customSeed={`quiz-${quizId}`}
+              customSeed={`reply-${seedBase}-${styleId}`}
             />
-
+            
             {/* Grokの回答 */}
             <div className="p-4 pl-12 border-b border-gray-700" ref={grokAnswerRef}>
               <div className="flex items-start">
@@ -272,75 +318,77 @@ const ResultPage: NextPage<ResultPageProps> = ({
                     {userAnswer}
                   </div>
 
-                  {/* インタラクションボタン */}
-                  <PostInteractions seed={`grok-answer-${quizId}-${styleId}`} />
+                  <PostInteractions seed={`grok-${seedBase}`} />
                 </div>
               </div>
             </div>
 
-            {/* Geminiフィードバック */}
-            <GeminiFeedback
-              feedback={feedbackData}
-              t={t}
-              isJapanese={isJapanese}
-              resultId={`result-${quizId}-${styleId}-${Math.floor(Math.random() * 10000)}`}
-            />
+            {/* Geminiの評価 */}
+            <GeminiFeedback feedback={feedbackData} t={t} isJapanese={isJapanese} resultId={seedBase} />
 
-            {/* モデル回答（遅延表示/ボタンで表示） */}
-            {isSharedView ? (
-              showShowMoreButton && (
-                <div className="p-4 text-center">
-                  <button
-                    onClick={() => setShowReferencePost(true)}
-                    className={`btn-secondary mt-4 ${showReferencePost ? 'hidden' : ''}`}
-                  >
-                    {t.showModelAnswer}
-                  </button>
-                </div>
-              )
-            ) : (
-              <div className="p-4 text-center">
-                <button
-                  onClick={() => setShowReferencePost(!showReferencePost)}
-                  className="btn-secondary mt-4"
-                >
-                  {showReferencePost ? t.hideModelAnswer : t.showModelAnswer}
-                </button>
-              </div>
+            {/* 参考回答を表示するボタン */}
+            {feedbackData.gemini_answer && showShowMoreButton && !showReferencePost && (
+              <button
+                onClick={() => setShowReferencePost(true)}
+                className="w-full py-2 text-twitter-blue hover:bg-gray-800/50 transition-colors border-t border-b border-gray-700 font-medium text-sm"
+              >
+                {isJapanese ? '1件のポストを表示' : 'Show 1 post'}
+              </button>
             )}
 
-            {/* Gemini参考回答 */}
-            {showReferencePost && feedbackData.gemini_answer && (
+            {/* Geminiの回答表示 */}
+            {feedbackData.gemini_answer && showReferencePost && (
               <GeminiAnswerDisplay
                 geminiAnswer={feedbackData.gemini_answer}
-                resultId={`result-${quizId}-${styleId}`}
+                resultId={seedBase}
                 locale={isJapanese ? 'ja' : 'en'}
                 t={t}
-                isReference={true}
               />
+            )}
+
+            {/* デバッグメッセージ（開発用のみ） */}
+            {process.env.NODE_ENV === 'development' && !feedbackData.gemini_answer && (
+              <div className="p-4 bg-red-100 text-red-800 border border-red-200 rounded-md mt-2 mb-2">
+                <p>Debug: Gemini回答が取得できませんでした。</p>
+              </div>
             )}
           </div>
 
           {/* シェアボタン */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mt-8">
-            <button
-              onClick={handleShare}
-              className="btn-primary flex items-center justify-center"
-            >
-              {t.shareOnX}
-            </button>
+            {!isSharedView && (
+              <button
+                onClick={handleShare}
+                className="btn-primary flex items-center justify-center"
+              >
+                {t.shareOnX}
+              </button>
+            )}
 
             <button
               onClick={() => router.push('/?lang=' + (isJapanese ? 'ja' : 'en'))}
-              className="btn-secondary"
+              className={isSharedView ? "btn-primary" : "btn-secondary"}
             >
-              {t.tryAgain}
+              {isSharedView ? t.tryGrokYourself : t.newQuestion}
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Aboutモーダル */}
+          {/* 結果ページの警告 */}
+          {isSharedView && (
+            <div className="mt-10 p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg text-sm text-amber-500">
+              <p>{t.resultDisclaimer}</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <footer className="bg-black py-6 mt-12">
+        <div className="container mx-auto px-4 text-center text-gray-500">
+          <p>{t.footer}</p>
+          <p className="mt-2 text-sm">{t.footerDisclaimer}</p>
+        </div>
+      </footer>
+
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
@@ -351,40 +399,103 @@ const ResultPage: NextPage<ResultPageProps> = ({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   // URLパラメータからクイズIDとスタイルIDを取得
-  const { quizId, styleId, answer } = context.query;
+  let quizId = 1;
+  let styleId = 1;
+  let userAnswer = '';
+  let langParam = 'ja';
   
-  // 言語パラメータを取得（なければデフォルトは日本語）
-  const langParam = context.query.lang as string || 'ja';
-  
-  // データが欠けている場合はホームにリダイレクト
-  if (!quizId || !styleId || !answer) {
-    // シェアのプロトタイプパラメータがあれば展開してみる
-    const shortParams = context.query.p as string;
-    if (shortParams) {
-      try {
-        // パラメータを展開
-        const expandedParams = expandUrlParams(shortParams);
-        const { quizId: qId, styleId: sId, answer: ans } = expandedParams;
-        
-        if (qId && sId && ans) {
-          return {
-            redirect: {
-              destination: `/result?quizId=${qId}&styleId=${sId}&answer=${encodeURIComponent(ans)}${langParam ? `&lang=${langParam}` : ''}`,
-              permanent: false,
-            },
-          };
+  // POSTリクエストの場合のみ処理
+  if (context.req.method === 'POST') {
+    try {
+      // POSTデータを取得
+      let formData: URLSearchParams | null = null;
+      
+      if (context.req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+        try {
+          const bodyBuffer = await new Promise<Buffer>((resolve, reject) => {
+            const bodyChunks: Buffer[] = [];
+            
+            context.req.on('data', (chunk: Buffer) => {
+              bodyChunks.push(chunk);
+            });
+            
+            context.req.on('end', () => {
+              resolve(Buffer.concat(bodyChunks));
+            });
+            
+            context.req.on('error', (err) => {
+              reject(err);
+            });
+          });
+          
+          // フォームデータをパース
+          formData = new URLSearchParams(bodyBuffer.toString());
+          console.log('Form data parsed:', Object.fromEntries(formData.entries()));
+          
+          // 言語設定を取得
+          if (formData.has('locale')) {
+            langParam = formData.get('locale') || langParam;
+          }
+          
+          // その他の必要なデータを取得
+          if (formData.has('quizId')) {
+            quizId = parseInt(formData.get('quizId') || '1', 10);
+          }
+          
+          if (formData.has('styleId')) {
+            styleId = parseInt(formData.get('styleId') || '1', 10);
+          }
+          
+          if (formData.has('answer')) {
+            userAnswer = formData.get('answer') || '';
+          }
+        } catch (readError) {
+          console.error('Error reading form data:', readError);
         }
-      } catch (error) {
-        console.error('Error expanding params:', error);
       }
+    } catch (error) {
+      console.error('Error extracting data from POST:', error);
     }
+  } else {
+    // クエリパラメータから取得 (GET)
+    const { quizId: qId, styleId: sId, answer: ans, lang } = context.query;
     
-    return {
-      redirect: {
-        destination: `/${langParam ? `?lang=${langParam}` : ''}`,
-        permanent: false,
-      },
-    };
+    if (qId) quizId = parseInt(qId as string, 10);
+    if (sId) styleId = parseInt(sId as string, 10);
+    if (ans) userAnswer = ans as string;
+    if (lang) langParam = lang as string;
+    
+    // クエリパラメータがない場合はホームにリダイレクト
+    if (!qId || !sId || !ans) {
+      // シェアのプロトタイプパラメータがあれば展開してみる
+      const shortParams = context.query.p as string;
+      if (shortParams) {
+        try {
+          // パラメータを展開
+          const expandedParams = expandUrlParams(shortParams);
+          const { quizId: expandedQid, styleId: expandedSid, answer: expandedAns } = expandedParams;
+          
+          if (expandedQid && expandedSid && expandedAns) {
+            return {
+              redirect: {
+                destination: `/result?quizId=${expandedQid}&styleId=${expandedSid}&answer=${encodeURIComponent(expandedAns)}${lang ? `&lang=${lang}` : ''}`,
+                permanent: false,
+              },
+            };
+          }
+        } catch (error) {
+          console.error('Error expanding params:', error);
+        }
+      }
+      
+      // それでもパラメータがない場合はホームにリダイレクト
+      return {
+        redirect: {
+          destination: `/${langParam ? `?lang=${langParam}` : ''}`,
+          permanent: false,
+        },
+      };
+    }
   }
   
   // 明示的に 'ja' または 'en' のみを許可
@@ -392,12 +503,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const langQuery = `?lang=${locale}`;
 
   try {
-    // ダミースコアの設定（実際の評価はこの後行われる）
-    const score = 70;
-    
     // クイズとスタイルの存在確認
-    const quiz = quizData.find(q => q.id === parseInt(quizId as string, 10));
-    const style = styleVariations.find(s => s.id === parseInt(styleId as string, 10));
+    const quiz = quizData.find(q => q.id === quizId);
+    const style = styleVariations.find(s => s.id === styleId);
     if (!quiz || !style) {
       // 存在しないクイズまたはスタイルの場合はホームにリダイレクト
       return {
@@ -407,9 +515,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
       };
     }
+
+    // ホスト名取得
+    const host = context.req.headers.host || 'localhost:3000';
     
-    // ユーザー回答を取得
-    const userAnswer = answer as string;
+    // ユーザー回答が無い場合はホームにリダイレクト
     if (!userAnswer) {
       return {
         redirect: {
@@ -419,13 +529,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
     
-    // 回答の質を評価
+    // クイズとスタイルの内容（ローカル変数）
     const quizContent = locale === 'ja' ? quiz.content_ja : quiz.content_en;
     const styleText = locale === 'ja' ? style.name_ja : style.name_en;
     
-    // Geminiの模範回答を取得
-    let geminiAnswer: GeminiAnswer | null = null;
-    
+    // サーバーサイドでGemini回答を取得（エラー発生時はフォールバック）
+    let geminiAnswer;
     try {
       geminiAnswer = await getGeminiAnswerServer(quiz, style, locale);
     } catch (error) {
@@ -438,17 +547,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
       };
     }
-    
+
     // 参考回答の取得は必須ではないので、エラーが発生しても続行
     try {
       await getGeminiReferenceAnswerServer(quiz, style, locale);
     } catch (error) {
       console.error('Failed to get reference answer:', error);
     }
-    
-    // 回答を評価
+
+    // サーバーサイドで回答評価（エラー発生時はフォールバック）
+    let feedbackData;
     let resultScore = 0;
-    let feedbackData: FeedbackData;
     
     try {
       feedbackData = await evaluateAnswerServer(quiz, style, userAnswer, geminiAnswer, locale);
@@ -461,42 +570,57 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         ? '※APIエラーのため、モックのフィードバックを表示しています。'
         : '※Showing mock feedback due to API error.';
       
+      // ランダムなスコアを生成するモックデータ
+      const accuracyScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+      const styleScore = Math.floor(Math.random() * 30) + 20; // 20-50点
+      const totalScore = accuracyScore + styleScore;
+      
       feedbackData = {
-        accuracy_score: 35,
-        style_score: 35,
-        total_score: 70,
-        accuracy_comment: `${errorMessage} ${locale === 'ja' ? '内容の正確性は平均的です。' : 'The accuracy is average.'}`,
-        style_comment: `${errorMessage} ${locale === 'ja' ? 'スタイルの模倣は部分的にできています。' : 'The style imitation is partially accomplished.'}`,
-        overall_comment: `${errorMessage} ${locale === 'ja' ? '全体的には可もなく不可もない回答です。' : 'Overall, this is a mediocre answer.'}`,
+        accuracy_score: accuracyScore,
+        accuracy_comment: locale === 'ja'
+          ? `${errorMessage} 内容の正確性は平均的です。`
+          : `${errorMessage} The accuracy is average.`,
+        style_score: styleScore,
+        style_comment: locale === 'ja'
+          ? `${errorMessage} スタイルの模倣は部分的にできています。`
+          : `${errorMessage} The style imitation is partially accomplished.`,
+        total_score: totalScore,
+        overall_comment: locale === 'ja'
+          ? `${errorMessage} 全体的には可もなく不可もない回答です。`
+          : `${errorMessage} Overall, this is a mediocre answer.`,
         gemini_answer: geminiAnswer
       };
       
-      resultScore = 70; // モックのスコア
+      resultScore = totalScore; // モックのスコア
     }
-    
-    // ソーシャルシェア用の設定
-    const ogImageUrl = generateOgImageUrl(
-      parseInt(quizId as string, 10),
-      parseInt(styleId as string, 10),
-      resultScore,
-      locale
-    );
-    
-    const resultUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.shaba.dev'}/result?quizId=${quizId}&styleId=${styleId}&answer=${encodeURIComponent(userAnswer)}&lang=${locale}`;
-    const shareText = generateShareText(quiz, style, resultScore, locale);
-    
-    // データを渡す
+
+    // 実際のスコアをOG画像のURL生成に使用
+    const ogImageUrl = generateOgImageUrl(quizId, styleId, resultScore, locale);
+
+    // 結果ページURL生成 - 一時的なダミーURL（実際のシェアURLはAPI経由で生成）
+    const resultUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.shaba.dev'}/result`;
+
+    // シェアテキスト生成
+    const shareText = generateShareText(quiz, style, resultScore, locale, resultUrl);
+
+    // シェアからの訪問判定
+    const referer = context.req.headers.referer || '';
+    const host_parts = host.split(':')[0];
+    const isDirect = context.query.direct === '1';
+    const isFromSameOrigin = referer.includes(host_parts);
+    const isSharedView = !isDirect && !isFromSameOrigin;
+
     return {
       props: {
-        quizId: parseInt(quizId as string, 10),
-        styleId: parseInt(styleId as string, 10),
+        quizId,
+        styleId,
         score: resultScore,
         userAnswer,
         locale,
         ogImageUrl,
         resultUrl,
         shareText,
-        isSharedView: false,
+        isSharedView,
         feedbackData
       }
     };

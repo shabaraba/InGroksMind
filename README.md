@@ -65,17 +65,12 @@ NEXT_PUBLIC_USE_GEMINI_API=true
   - types.ts (型定義)
 ```
 
-## Netlifyへのデプロイ
+## デプロイ
 
-このプロジェクトは、Netlifyへのデプロイに最適化されています。以下の手順でデプロイしてください：
+このプロジェクトは、Vercelへのデプロイに最適化されています。以下の環境変数を設定してください：
 
-1. Netlify CLIをインストール：`npm install -g netlify-cli`
-2. ログイン：`netlify login`
-3. プロジェクトの初期化：`netlify init`
-4. 環境変数の設定：Netlifyダッシュボードで以下の環境変数を設定
-   - `GEMINI_API_KEY`：Gemini APIキー
-   - `NEXT_PUBLIC_USE_GEMINI_API`：`true`
-5. デプロイ：`netlify deploy --prod`
+- `GEMINI_API_KEY`：Gemini APIキー
+- `NEXT_PUBLIC_USE_GEMINI_API`：`true`
 
 ## OGP画像の動的生成の仕組み
 

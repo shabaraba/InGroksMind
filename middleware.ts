@@ -6,23 +6,25 @@ export default async function middleware(req: NextRequest) {
   // POSTリクエストの処理
   if (req.method === 'POST') {
     // 結果ページへのPOSTリクエストを処理
-    if (pathname.startsWith('/result/')) {
+    if (pathname === '/result') {
       // フォームデータを処理
       try {
         const formData = await req.formData();
         const answer = formData.get('answer');
+        const quizId = formData.get('quizId');
+        const styleId = formData.get('styleId');
         const locale = formData.get('locale');
         
         // 必要なパラメータがある場合、URLに追加
-        if (answer || locale) {
+        if (answer && quizId && styleId) {
           const url = req.nextUrl.clone();
           
           // クエリパラメータにformDataの内容を追加
-          if (answer && !url.searchParams.has('answer')) {
-            url.searchParams.set('answer', answer.toString());
-          }
+          url.searchParams.set('quizId', quizId.toString());
+          url.searchParams.set('styleId', styleId.toString());
+          url.searchParams.set('answer', answer.toString());
           
-          if (locale && !url.searchParams.has('lang')) {
+          if (locale) {
             url.searchParams.set('lang', locale.toString());
           }
           
