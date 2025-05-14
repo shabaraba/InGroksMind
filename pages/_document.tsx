@@ -35,9 +35,7 @@ export default function Document() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@from_garage" />
         
-        {/* デフォルトOGP画像 - ページ単位で上書き可能（_document.tsxでは動的値は使えない） */}
-        <meta property="og:image" content="https://in-grok-mind.vercel.app/og-image-home-new.png" />
-        <meta name="twitter:image" content="https://in-grok-mind.vercel.app/og-image-home-new.png" />
+        {/* デフォルトOGP設定 - 各ページでは必要に応じてこれらを上書きする */}
       </Head>
       <body>
         <Main />
