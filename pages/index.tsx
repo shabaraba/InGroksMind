@@ -6,6 +6,7 @@ import { getTranslation } from '../i18n/translations';
 import { quizData } from '../data/quizData';
 import { styleVariations } from '../data/styleVariations';
 import { generateResultId } from '../utils/geminiService';
+import { getTimestampParam } from '../utils/simpleImageUtils';
 import { FeedbackData } from '../utils/types';
 import { LanguageContext } from './_app';
 import { getRandomUser, getGrokUser, virtualUsers } from '../data/virtualUsers';
@@ -232,7 +233,7 @@ export default function Home() {
         <meta property="og:title" content={t.appTitle} />
         <meta property="og:description" content={t.appDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${Date.now()}`} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
         <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
@@ -242,7 +243,7 @@ export default function Home() {
         <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={t.appTitle} />
         <meta name="twitter:description" content={t.appDescription} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${Date.now()}`} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
