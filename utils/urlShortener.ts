@@ -30,13 +30,22 @@ export const shortenUrl = (url: string): string => {
   return `${baseUrl}?c=${encodedData}`;
 };
 
+// 展開されたURLパラメータの型定義
+interface ExpandedUrlParams {
+  quizId?: string;
+  styleId?: string;
+  answer?: string;
+  lang?: string;
+  [key: string]: string | undefined;
+}
+
 /**
  * 圧縮されたURLを元の形式に展開する
  * @param url 圧縮されたURL
- * @returns 展開されたURLSearchParams
+ * @returns 展開されたパラメータオブジェクト
  */
-export const expandUrlParams = (compressedData: string): URLSearchParams => {
-  const params = new URLSearchParams();
+export const expandUrlParams = (compressedData: string): ExpandedUrlParams => {
+  const result: ExpandedUrlParams = {};
   
   try {
     // 圧縮されたデータをデコードして展開
@@ -45,14 +54,14 @@ export const expandUrlParams = (compressedData: string): URLSearchParams => {
     const data = JSON.parse(decompressed);
     
     // 元のURLパラメータに戻す
-    if (data.a) params.append('answer', data.a);
-    if (data.l) params.append('lang', data.l);
-    if (data.qu) params.append('quizUserId', data.qu);
-    if (data.ru) params.append('replyUserId', data.ru);
-    if (data.d) params.append('direct', data.d);
+    if (data.a) result.answer = data.a;
+    if (data.l) result.lang = data.l;
+    if (data.qu) result.quizUserId = data.qu;
+    if (data.ru) result.replyUserId = data.ru;
+    if (data.d) result.direct = data.d;
   } catch (error) {
     console.error('Error expanding URL:', error);
   }
   
-  return params;
+  return result;
 };

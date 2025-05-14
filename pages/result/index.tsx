@@ -20,6 +20,7 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
 import AboutModal from '../../components/AboutModal';
 import GeminiAnswerDisplay from '../../components/GeminiAnswerDisplay';
 import GeminiFeedback from '../../components/GeminiFeedback';
+import PostInteractions from '../../components/PostInteractions';
 import * as ga from '../../utils/analytics';
 
 interface ResultPageProps {
@@ -343,7 +344,6 @@ const ResultPage: NextPage<ResultPageProps> = ({
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
-        t={t}
       />
     </div>
   );
@@ -441,7 +441,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     
     // 参考回答の取得は必須ではないので、エラーが発生しても続行
     try {
-      await getGeminiReferenceAnswerServer(quiz, locale);
+      await getGeminiReferenceAnswerServer(quiz, style, locale);
     } catch (error) {
       console.error('Failed to get reference answer:', error);
     }
