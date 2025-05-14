@@ -65,6 +65,10 @@ export const translations: Translations = {
     resultNew: "新しい問題に挑戦する",
     tryGrokYourself: "あなたもGrokになってみる",
     sharedResultView: "シェアされた回答結果",
+    showModelAnswer: "模範回答を表示",
+    hideModelAnswer: "模範回答を隠す",
+    tryAgain: "もう一度挑戦する",
+    checkMyAnswer: "私の回答をチェック:",
     
     // ボタン類
     newQuestion: "新しい問題に挑戦する",
@@ -156,6 +160,10 @@ export const translations: Translations = {
     resultNew: "Try a new question",
     tryGrokYourself: "Try Being Grok Yourself",
     sharedResultView: "Shared Answer Result",
+    showModelAnswer: "Show Model Answer",
+    hideModelAnswer: "Hide Model Answer",
+    tryAgain: "Try Again",
+    checkMyAnswer: "Check my answer:",
     
     // Buttons
     newQuestion: "Try Another Question",
