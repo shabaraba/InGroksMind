@@ -128,48 +128,28 @@ export default function Home() {
       // Google Analyticsにイベントを送信
       ga.trackAnswerSubmission(70, isJapanese ? style.name_ja : style.name_en);
 
-      // シンプルなパス指定 - resultIdなし
-      const path = '/result';
+      // GETパラメータでresultページに遷移
+      const encodedAnswer = encodeURIComponent(answer);
+      const locale = isJapanese ? 'ja' : 'en';
       
-      // 詳細なデータはPOSTで送信
-      const formData = new URLSearchParams();
-      formData.append('answer', answer);
-      formData.append('quizId', quizId.toString());
-      formData.append('styleId', styleId.toString());
-      formData.append('locale', isJapanese ? 'ja' : 'en');
-      formData.append('quizUserId', quizUser.id.toString());
-      formData.append('replyUserId', replyUser.id.toString());
+      // クエリパラメータを構築
+      const query = {
+        quizId: quizId.toString(),
+        styleId: styleId.toString(),
+        answer: encodedAnswer,
+        lang: locale,
+        quizUserId: quizUser.id.toString(),
+        replyUserId: replyUser.id.toString()
+      };
       
-      // POSTリクエストの実行（フォームを直接作成して送信）
-      const form = document.createElement('form');
-      form.method = 'post';
-      form.action = path;
-      
-      // URLをブラウザの履歴に追加（直接アクセスできるように）
-      window.history.pushState({}, '', path);
-      
-      // FormDataの内容をフォームに追加
-      for (const [key, value] of formData.entries()) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      }
-      
-      // 安全対策として、answerを明示的に追加
-      const answerInput = document.createElement('input');
-      answerInput.type = 'hidden';
-      answerInput.name = 'answer';
-      answerInput.value = answer;
-      form.appendChild(answerInput);
-      
-      // フォームをDOMに追加して送信
-      document.body.appendChild(form);
-      form.submit();
+      // Next.jsのrouterを使ってページ遷移
+      router.push({
+        pathname: '/result',
+        query
+      });
     } catch (error) {
       console.error('Error submitting answer:', error);
-      alert('回答の評価中にエラーが発生しました。もう一度お試しください。');
+      alert(isJapanese ? '回答の評価中にエラーが発生しました。もう一度お試しください。' : 'An error occurred while evaluating your answer. Please try again.');
       setIsSubmitting(false);
     }
   };
