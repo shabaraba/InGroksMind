@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
+import { DefaultSeo } from 'next-seo';
 
 // 拡張したPagePropsの型定義
 interface ExtendedPageProps {
@@ -139,13 +140,55 @@ function MyApp({ Component, pageProps }: ExtendedAppProps) {
 
   return (
     <LanguageContext.Provider value={{ language, isJapanese, setLanguage }}>
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta charSet="utf-8" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
-      </Head>
+      <DefaultSeo
+        titleTemplate="%s | InGrokMind"
+        defaultTitle="InGrokMind - Grokスタイルでの回答評価"
+        description="あなたの回答をGrokスタイルで評価します。様々なスタイルでGrokに返信してみましょう。"
+        openGraph={{
+          type: 'website',
+          locale: isJapanese ? 'ja_JP' : 'en_US',
+          url: 'https://in-grok-mind.shaba.dev',
+          site_name: 'InGrokMind',
+          images: [
+            {
+              url: 'https://in-grok-mind.shaba.dev/og-image-home-new.png',
+              width: 1200,
+              height: 630,
+              alt: 'InGrokMind',
+            },
+          ],
+        }}
+        twitter={{
+          handle: '@from_garage',
+          site: '@from_garage',
+          cardType: 'summary_large_image',
+        }}
+        additionalLinkTags={[
+          {
+            rel: 'icon',
+            href: '/favicon.ico',
+            sizes: 'any',
+          },
+          {
+            rel: 'icon',
+            href: '/favicon.svg',
+            type: 'image/svg+xml',
+          },
+          {
+            rel: 'apple-touch-icon',
+            href: '/favicon.png',
+          },
+        ]}
+        additionalMetaTags={[
+          {
+            name: 'viewport',
+            content: 'width=device-width, initial-scale=1.0',
+          },
+          {
+            charSet: 'utf-8',
+          },
+        ]}
+      />
       {/* クライアントサイドでレンダリングされるまでは何も表示しない */}
       {isClient ? <Component {...pageProps} /> :
         <div className="min-h-screen bg-twitter-dark flex items-center justify-center">
