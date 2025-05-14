@@ -69,9 +69,21 @@ export const getResultFromKV = async (shareId: string): Promise<ResultPageData |
     // データが文字列であることを確認
     if (typeof data === 'string') {
       return JSON.parse(data);
-    } else if (typeof data === 'object') {
-      // すでにオブジェクトの場合はそのまま返す（Upstashの挙動に対応）
-      return data;
+    } else if (typeof data === 'object' && data !== null) {
+      // すでにオブジェクトの場合は型チェックしてから返す（Upstashの挙動に対応）
+      // ResultPageDataの必須プロパティが存在するか確認
+      const resultData = data as any;
+      if (
+        typeof resultData.quizId === 'number' && 
+        typeof resultData.styleId === 'number' && 
+        typeof resultData.answer === 'string' && 
+        resultData.feedback && 
+        typeof resultData.timestamp === 'number'
+      ) {
+        return resultData as ResultPageData;
+      }
+      console.error('Retrieved object from Redis does not match ResultPageData structure');
+      return null;
     } else {
       console.error(`Unexpected data type from Redis: ${typeof data}`);
       return null;
