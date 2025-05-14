@@ -92,12 +92,9 @@ export default async function handler(
     // レスポンスからテキストを抽出
     const textResponse = response.data.candidates[0].content.parts[0].text;
     
-    // アバター画像URL (後で実際のデータに置き換える)
-    const avatarUrl = "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s16-c";
-    
     return res.status(200).json({
       content: textResponse.trim(),
-      avatar_url: avatarUrl
+      avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
     });
   } catch (error: any) {
     console.error('Error:', error);

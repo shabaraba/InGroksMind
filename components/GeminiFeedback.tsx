@@ -9,7 +9,6 @@ interface GeminiFeedbackProps {
   resultId: string;
 }
 
-// Geminiのフィードバック表示コンポーネント
 const GeminiFeedback: React.FC<GeminiFeedbackProps> = ({ 
   feedback, 
   t, 
@@ -24,7 +23,6 @@ const GeminiFeedback: React.FC<GeminiFeedbackProps> = ({
     return 'score-low';
   };
 
-  // Geminiのアバターと情報
   const geminiAvatar = "#EA4335"; // Google Redを使用
   const geminiName = "Gemini";
   const geminiUsername = "gemini";

@@ -20,11 +20,8 @@ const GeminiAnswerDisplay: React.FC<GeminiAnswerDisplayProps> = ({
 }) => {
   const { content, avatar_url, is_reference } = geminiAnswer;
 
-  // isReferenceプロパティが明示的に渡された場合はそれを使用し、
-  // そうでない場合はgeminiAnswerのis_referenceを使用
   const actualIsReference = isReference !== undefined ? isReference : (is_reference || false);
 
-  // Geminiのアバターと情報
   const geminiAvatar = actualIsReference ? "#4285F4" : "#EA4335"; // 参考回答の場合は青、通常回答の場合は赤
   const geminiName = actualIsReference ? "Gemini Reference" : "Gemini";
   const geminiUsername = actualIsReference ? "gemini_ref" : "gemini";

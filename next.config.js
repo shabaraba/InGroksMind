@@ -10,7 +10,7 @@ const nextConfig = {
   },
   // 環境変数
   env: {
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.shaba.dev'
   },
   // 静的ファイルのキャッシュ設定
   async headers() {

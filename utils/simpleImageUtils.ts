@@ -1,8 +1,5 @@
 // シンプルなOG画像ユーティリティ（Netlify Functionsに依存しない実装）
 
-import { QuizItem } from '../data/quizData';
-import { StyleVariation } from '../data/styleVariations';
-
 /**
  * タイムスタンプをクエリパラメータとして追加する
  * これはキャッシュバスティングのために使用される
