@@ -93,9 +93,11 @@ const SharePage: NextPage<SharePageProps> = ({
     setPageTitle(`${t.appTitle} - ${t.sharedResultView} (${score}/100)`);
   }, [t, score]);
   
-  // ユーザー情報の初期化 (固定のシード値を使用)
+  // ユーザー情報の初期化 (固定のシード値とシェアデータ内のユーザーIDを使用)
   const seedBase = `share-${shareId}`;
-  const initialUsers = initializeUsers(seedBase, quizId, isJapanese);
+  const savedQuizUserId = resultData.quizUserId;
+  const savedReplyUserId = resultData.replyUserId;
+  const initialUsers = initializeUsers(seedBase, quizId, isJapanese, savedQuizUserId, savedReplyUserId);
   const [quizUser, setQuizUser] = useState(initialUsers[0]);
   const [replyUser, setReplyUser] = useState(initialUsers[1]);
   const [currentGrokUser, setCurrentGrokUser] = useState(getGrokUser(isJapanese));
@@ -103,12 +105,12 @@ const SharePage: NextPage<SharePageProps> = ({
 
   // 言語が変更されたときにユーザー名を更新
   useEffect(() => {
-    // 言語に合わせてユーザー情報を更新
-    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese);
+    // 言語に合わせてユーザー情報を更新（保存されたユーザーIDを使用）
+    const updatedUsers = initializeUsers(seedBase, quizId, isJapanese, savedQuizUserId, savedReplyUserId);
     setQuizUser(updatedUsers[0]);
     setReplyUser(updatedUsers[1]);
     setCurrentGrokUser(getGrokUser(isJapanese));
-  }, [isJapanese, seedBase, quizId]);
+  }, [isJapanese, seedBase, quizId, savedQuizUserId, savedReplyUserId]);
   
   // Xでシェアする
   const handleShare = () => {
