@@ -515,10 +515,14 @@ export const getServerSideProps: GetServerSideProps<ResultPageProps> = async (co
     } catch (error) {
       console.error('Failed to get Gemini answer:', error);
       // getMockGeminiAnswerはプライベート関数なのでインポートできない場合、単純なダミーデータを作成
+      // ローカル変数で内容を生成（型エラーを防ぐため）
+      const content = locale === 'ja' ? quiz.content_ja : quiz.content_en;
+      const styleName = locale === 'ja' ? style.name_ja : style.name_en;
+      
       geminiAnswer = {
         content: locale === 'ja'
-          ? `（API呼び出しエラーのため）これはGeminiの模範解答です。${locale === 'ja' ? quiz.content_ja : quiz.content_en}について、${locale === 'ja' ? style.name_ja : style.name_en}の口調でお答えします。このお題についての正確な情報をご提供します。`
-          : `This is a model answer from Gemini. I'll answer about ${locale === 'ja' ? quiz.content_ja : quiz.content_en} in the style of ${locale === 'ja' ? style.name_ja : style.name_en}. Let me provide you with accurate information about this topic. (API call error occurred)`,
+          ? `（API呼び出しエラーのため）これはGeminiの模範解答です。${content}について、${styleName}の口調でお答えします。このお題についての正確な情報をご提供します。`
+          : `This is a model answer from Gemini. I'll answer about ${content} in the style of ${styleName}. Let me provide you with accurate information about this topic. (API call error occurred)`,
         avatar_url: "https://lh3.googleusercontent.com/a/ACg8ocL6It7Up3pLC6Zexk19oNK4UQTd_iIz5eXXHxWjZrBxH_cN=s48-c"
       };
     }
