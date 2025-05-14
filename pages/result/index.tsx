@@ -7,7 +7,7 @@ import { quizData } from '../../data/quizData';
 import { styleVariations } from '../../data/styleVariations';
 import { getTranslationForLocale } from '../../i18n/translations';
 import { generateShareText } from '../../utils/shareUtils';
-import { generateOgImageUrl } from '../../utils/simpleImageUtils';
+import { generateOgImageUrl, getTimestampParam } from '../../utils/simpleImageUtils';
 import { FeedbackData, GeminiAnswer } from '../../utils/types';
 import { expandUrlParams } from '../../utils/urlShortener';
 import { LanguageContext } from '../_app';
@@ -243,7 +243,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
           : `${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/result`} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${Date.now()}`} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
 
@@ -252,7 +252,7 @@ const ResultPage: NextPage<ResultPageProps> = ({
         <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${Date.now()}`} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
