@@ -232,8 +232,8 @@ export default function Home() {
         <meta property="og:title" content={t.appTitle} />
         <meta property="og:description" content={t.appDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/og?locale=${isJapanese ? 'ja' : 'en'}`} />
-        <meta property="og:url" content="" />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?t=20250513`} />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
 
@@ -242,7 +242,7 @@ export default function Home() {
         <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={t.appTitle} />
         <meta name="twitter:description" content={t.appDescription} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/og?locale=${isJapanese ? 'ja' : 'en'}`} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?t=20250513`} />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
