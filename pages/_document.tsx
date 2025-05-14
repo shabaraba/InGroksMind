@@ -3,7 +3,7 @@ import { GA_MEASUREMENT_ID } from '../utils/analytics';
 
 export default function Document() {
   return (
-    <Html lang="ja" prefix="og: http://ogp.me/ns#">
+    <Html lang="ja" prefix="og: https://ogp.me/ns#">
       <Head>
         {/* Google Analytics */}
         {GA_MEASUREMENT_ID && (

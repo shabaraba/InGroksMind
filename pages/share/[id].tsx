@@ -137,8 +137,8 @@ const SharePage: NextPage<SharePageProps> = ({
         <meta property="og:site_name" content={t.appTitle} />
         <meta property="og:description" content={`${content} - ${styleName} (${score}/100)`} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/share/${shareId}`} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
+        <meta property="og:url" content={`https://in-grok-mind.shaba.dev/share/${shareId}`} />
+        <meta property="og:image" content="https://in-grok-mind.shaba.dev/og-image-home-new.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
 
@@ -147,7 +147,7 @@ const SharePage: NextPage<SharePageProps> = ({
         <meta name="twitter:site" content="@from_garage" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={`${content} - ${styleName} (${score}/100)`} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://in-grok-mind.vercel.app'}/og-image-home-new.png?${getTimestampParam()}`} />
+        <meta name="twitter:image" content="https://in-grok-mind.shaba.dev/og-image-home-new.png" />
       </Head>
 
       <header className="bg-black/80 backdrop-blur-md p-4 border-b border-gray-700 sticky top-0 z-10">
